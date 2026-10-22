@@ -1,6 +1,6 @@
 --[[
 	╔══════════════════════════════════════════════════════════╗
-	║  FROGGY HUB v1.3 — Panel de Control (TSB Edition)        ║
+	║  FROGGY HUB v1.2 — Panel de Control de Desarrollo        ║
 	║  Tema: Charca de Rana (Frog Pond)                        ║
 	╚══════════════════════════════════════════════════════════╝
 ]]
@@ -12,7 +12,6 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -39,41 +38,16 @@ end
 local function loadModule(filename, configKey)
     local url = BASE_URL .. filename .. "?v=" .. os.time()
     local ok, src = pcall(function() return game:HttpGet(url, true) end)
-    
-    if not ok then 
-        warn("[Froggy Hub] ❌ Error de red al buscar: " .. filename)
-        return nil 
-    end
-    if type(src) ~= "string" or src:sub(1, 3) == "404" or #src < 10 then 
-        warn("[Froggy Hub] ❌ 404: El archivo no existe en GitHub -> " .. filename)
-        return nil 
-    end
-    
+    if not ok or type(src) ~= "string" or src:sub(1, 3) == "404" then return nil end
     local chunk, err = loadstring(src)
-    if type(chunk) ~= "function" then 
-        warn("[Froggy Hub] ❌ Error de sintaxis en " .. filename .. ": " .. tostring(err)) 
-        return nil 
-    end
-    
+    if type(chunk) ~= "function" then warn("Error en "..filename..": "..tostring(err)) return nil end
     local runOk, runErr = pcall(chunk)
-    if not runOk then 
-        warn("[Froggy Hub] ❌ Error ejecutando " .. filename .. ": " .. tostring(runErr)) 
-        return nil 
-    end
-    
-    local cfg = (getgenv and getgenv() or _G)[configKey]
-    if not cfg then
-        warn("[Froggy Hub] ⚠️ El archivo " .. filename .. " cargó, pero NO creó la variable: " .. configKey)
-        return nil
-    end
-    
-    print("[Froggy Hub] ✅ " .. filename .. " cargado correctamente.")
-    return cfg
+    if not runOk then warn("Error ejecutando "..filename..": "..tostring(runErr)) return nil end
+    return (getgenv and getgenv() or _G)[configKey]
 end
 
 local LogoId = fetchLogo()
--- ¡Nombres corregidos para que coincidan con tu GitHub!
-local InvisConfig = loadModule("Invisibilidad.lua", "FROGGY_INVIS_CONFIG")
+local InvisConfig = loadModule("Invisibility.lua", "FROGGY_INVIS_CONFIG")
 local MoveConfig = loadModule("Movement.lua", "FROGGY_MOVE_CONFIG")
 
 ------------------------------------------------------------
@@ -81,7 +55,7 @@ local MoveConfig = loadModule("Movement.lua", "FROGGY_MOVE_CONFIG")
 ------------------------------------------------------------
 local CONFIG = {
 	Name = "Froggy Hub",
-	Version = "v1.3-TSB",
+	Version = "v1.2",
 	LogoId = LogoId,
 	BaseSize = Vector2.new(560, 360),
 	HeaderHeight = 48,
@@ -138,7 +112,7 @@ local function nextOrder(parent) orderCounters[parent] = (orderCounters[parent] 
 local connections = {}
 
 ------------------------------------------------------------
--- 4. SCREENGUI + FONDO ANIMADO
+-- 4. SCREENGUI + FONDO ANIMADO (ONDAS Y LUCIÉRNAGAS)
 ------------------------------------------------------------
 local oldGui = playerGui:FindFirstChild("FroggyHub")
 if oldGui then oldGui:Destroy() end
@@ -235,7 +209,7 @@ end
 local closeBtn = createHeaderButton("×", -10, Theme.Danger)
 local minimizeBtn = createHeaderButton("–", -44, Theme.Swamp)
 
-do
+do -- Arrastre multi-touch
 	local dragging, dragInput, dragStart, startPos = false, nil, Vector3.zero, main.Position
 	header.InputBegan:Connect(function(input)
 		if dragging then return end
@@ -254,7 +228,7 @@ do
 end
 
 ------------------------------------------------------------
--- 7. CUERPO: PÁGINAS Y COMPONENTES
+-- 7. CUERPO: PÁGINAS
 ------------------------------------------------------------
 local body = new("Frame", { Name = "Body", Position = UDim2.fromOffset(0, CONFIG.HeaderHeight), Size = UDim2.new(1, 0, 1, -CONFIG.HeaderHeight), BackgroundTransparency = 1, ZIndex = 4 }, main)
 local sidebar = new("Frame", { Name = "Sidebar", Position = UDim2.fromOffset(8, 8), Size = UDim2.new(0, CONFIG.SidebarWidth, 1, -16), BackgroundColor3 = Theme.BgDeep, BackgroundTransparency = 0.3, BorderSizePixel = 0, ZIndex = 4 }, body)
@@ -365,7 +339,7 @@ local function createButton(parent, name, onClickCallback)
 end
 
 ------------------------------------------------------------
--- 8. CONTENIDO Y LÓGICA (TSB EDITION)
+-- 8. CONTENIDO DE LAS PÁGINAS
 ------------------------------------------------------------
 local combatPage = createPage("Combat")
 createSection(combatPage, "Caos Masivo")
@@ -389,150 +363,76 @@ end)
 
 local visualsPage = createPage("Visuals")
 createSection(visualsPage, "Invisibilidad")
-
-local invisEnabled = false
-local phantomMode = false
-
-local function applyInvis()
-    if not InvisConfig then return end
-    if InvisConfig.SetMode then
-        InvisConfig.SetMode(phantomMode and "Phantom" or "Local")
+createToggle(visualsPage, "Invisibilidad Real", "Invisible para otros (Desync)", false, function(enabled)
+    if InvisConfig then
+        InvisConfig.Set(enabled)
+        Notify("Invisibilidad", enabled and "Activada" or "Desactivada")
+    else
+        Notify("Error", "Módulo no cargado.")
     end
-    InvisConfig.Set(invisEnabled)
-end
-
-createToggle(visualsPage, "Invisibilidad", "Activa la invisibilidad", false, function(enabled)
-    if not InvisConfig then
-        Notify("Error", "Módulo de invisibilidad no cargado.")
-        return
-    end
-    invisEnabled = enabled
-    applyInvis()
-    Notify("Invisibilidad", enabled and ("ON · " .. (phantomMode and "Phantom" or "Local")) or "OFF")
 end)
 
-createToggle(visualsPage, "Modo Phantom", "Invisible para TODOS + atacas (DETECTABLE)", false, function(enabled)
-    if not InvisConfig then
-        Notify("Error", "Módulo de invisibilidad no cargado.")
-        return
-    end
-    phantomMode = enabled
-    if invisEnabled then applyInvis() end
-    Notify("Modo", enabled and "Phantom (riesgoso)" or "Local (seguro)")
-end)
-
-------------------------------------------------------------
--- MOVEMENT PAGE
-------------------------------------------------------------
 local movementPage = createPage("Movement")
-createSection(movementPage, "Velocidad · TSB-friendly")
-
-local speedToggle = createToggle(movementPage, "Speed Boost", "Activa WalkSpeed custom (default 36)", false, function(enabled)
+createSection(movementPage, "Ajustes de Movimiento")
+createToggle(movementPage, "Activar Movimiento", "Habilita los sliders de abajo", false, function(enabled)
     if MoveConfig then
-        MoveConfig.SpeedEnabled = enabled
-        Notify("Speed", enabled and ("ON · " .. tostring(MoveConfig.Speed)) or "OFF")
-    else
-        Notify("Error", "Movement.lua no cargado.")
+        MoveConfig.Enabled = enabled
+        Notify("Movimiento", enabled and "Activado" or "Desactivado")
     end
 end)
 
-local speedSlider = createSlider(movementPage, "Walk Speed", 16, 200, (MoveConfig and MoveConfig.Speed) or 36, 1, function(value)
-    if MoveConfig then MoveConfig.Speed = value end
-end)
-
-createSection(movementPage, "Salto")
-
-local jumpToggle = createToggle(movementPage, "Jump Boost", "Aumenta JumpPower (default 60)", false, function(enabled)
+createSlider(movementPage, "Walk Speed", 16, 200, 16, 1, function(value)
     if MoveConfig then
-        MoveConfig.JumpEnabled = enabled
-        Notify("Jump", enabled and ("ON · " .. tostring(MoveConfig.JumpPower)) or "OFF")
-    else
-        Notify("Error", "Movement.lua no cargado.")
+        MoveConfig.WalkSpeed = value
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum and MoveConfig.Enabled then hum.WalkSpeed = value end
     end
 end)
 
-local jumpSlider = createSlider(movementPage, "Jump Power", 50, 200, (MoveConfig and MoveConfig.JumpPower) or 60, 1, function(value)
-    if MoveConfig then MoveConfig.JumpPower = value end
-end)
-
-createSection(movementPage, "Comportamiento TSB")
-
-createToggle(movementPage, "Respetar Stuns", "No pelea con stuns/roots del juego (recomendado)", true, function(enabled)
-    if MoveConfig then MoveConfig.RespectStuns = enabled end
-end)
-
-createButton(movementPage, "↺ Reset Defaults (36 / 60)", function()
+createSlider(movementPage, "Jump Power", 50, 300, 50, 5, function(value)
     if MoveConfig then
-        MoveConfig.Speed = 36
-        MoveConfig.JumpPower = 60
-        MoveConfig.RespectStuns = true
+        MoveConfig.JumpPower = value
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum and MoveConfig.Enabled then hum.JumpPower = value end
     end
-    speedSlider.Set(36, true)
-    jumpSlider.Set(60, true)
-    Notify("Movement", "Reset a 36 / 60 · respetar stuns ON")
 end)
 
-------------------------------------------------------------
--- FLY (con manejo de respawn)
-------------------------------------------------------------
-createSection(movementPage, "Vuelo (riesgoso en TSB)")
-
-local flyState = { enabled = false, vel = nil, gyro = nil, conn = nil, char = nil }
-
-local function stopFly()
-    flyState.enabled = false
-    if flyState.vel then pcall(function() flyState.vel:Destroy() end); flyState.vel = nil end
-    if flyState.gyro then pcall(function() flyState.gyro:Destroy() end); flyState.gyro = nil end
-    if flyState.conn then flyState.conn:Disconnect(); flyState.conn = nil end
-    flyState.char = nil
-end
-
-local function startFly(char)
+createSection(movementPage, "Vuelo")
+local isFlying = false
+local flyVel, flyGyro, flyConn
+createToggle(movementPage, "Fly (Volar)", "Vuela por el mapa", false, function(enabled)
+    isFlying = enabled
+    local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-    flyState.char = char
-    flyState.vel = Instance.new("BodyVelocity", hrp)
-    flyState.vel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    flyState.vel.Velocity = Vector3.new(0, 0, 0)
-    flyState.gyro = Instance.new("BodyGyro", hrp)
-    flyState.gyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    flyState.gyro.P = 1000
-    flyState.conn = RunService.Heartbeat:Connect(function()
-        if not flyState.enabled or not flyState.vel or not flyState.vel.Parent then return end
-        local cam = workspace.CurrentCamera
-        local hum = flyState.char and flyState.char:FindFirstChildOfClass("Humanoid")
-        local moveDir = hum and hum.MoveDirection or Vector3.new(0, 0, 0)
-        flyState.vel.Velocity = moveDir * 100 + Vector3.new(0, 20, 0)
-        flyState.gyro.CFrame = cam.CFrame
-    end)
-end
-
-createToggle(movementPage, "Fly (Volar)", "Vuela por el mapa — usa con cuidado", false, function(enabled)
+    
     if enabled then
-        flyState.enabled = true
-        local char = player.Character
-        if char then startFly(char) end
+        flyVel = Instance.new("BodyVelocity", hrp)
+        flyVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        flyVel.Velocity = Vector3.new(0,0,0)
+        flyGyro = Instance.new("BodyGyro", hrp)
+        flyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        flyGyro.P = 1000
+        
+        flyConn = RunService.Heartbeat:Connect(function()
+            if not isFlying or not flyVel or not flyVel.Parent then return end
+            local cam = workspace.CurrentCamera
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local moveDir = hum and hum.MoveDirection or Vector3.new(0,0,0)
+            flyVel.Velocity = moveDir * 100 + Vector3.new(0, 20, 0)
+            flyGyro.CFrame = cam.CFrame
+        end)
         Notify("Vuelo", "Activado")
     else
-        stopFly()
+        if flyVel then flyVel:Destroy() end
+        if flyGyro then flyGyro:Destroy() end
+        if flyConn then flyConn:Disconnect() end
         Notify("Vuelo", "Desactivado")
     end
 end)
 
-table.insert(connections, player.CharacterAdded:Connect(function(char)
-    if not flyState.enabled then return end
-    stopFly()
-    flyState.enabled = true
-    char:WaitForChild("HumanoidRootPart", 5)
-    task.wait(0.15)
-    if flyState.enabled and player.Character == char then
-        startFly(char)
-    end
-end))
-
-------------------------------------------------------------
--- 9. SETTINGS
-------------------------------------------------------------
 local settingsPage = createPage("Settings")
 createSection(settingsPage, "Interfaz")
 createToggle(settingsPage, "Notificaciones", "Avisos abajo a la derecha", true, function(enabled) notificationsEnabled = enabled end)
@@ -541,7 +441,7 @@ createSlider(settingsPage, "UI Scale", 0.7, 1.3, 1, 0.05, function(value) userSc
 createButton(settingsPage, "Reset Position", function() tween(main, 0.4, { Position = defaultPosition() }) end)
 
 ------------------------------------------------------------
--- 10. MINIMIZAR / CERRAR / ATAJOS
+-- 9. MINIMIZAR / CERRAR / ATAJOS
 ------------------------------------------------------------
 local minimized, closing = false, false
 local function setMinimized(value)
@@ -559,8 +459,6 @@ minimizeBtn.Activated:Connect(function() setMinimized(not minimized) end)
 closeBtn.Activated:Connect(function()
 	if closing then return end
 	closing = true; fxEnabled = false
-	if flyState.enabled then stopFly() end
-    if InvisConfig and invisEnabled then InvisConfig.Set(false) end
 	local t = tween(uiScale, 0.3, { Scale = 0 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 	t.Completed:Wait(); screenGui:Destroy()
 end)
@@ -570,8 +468,8 @@ table.insert(connections, UserInputService.InputBegan:Connect(function(input, ga
 screenGui.Destroying:Connect(function() fxEnabled = false; for _, connection in ipairs(connections) do connection:Disconnect() end end)
 
 ------------------------------------------------------------
--- 11. ANIMACIÓN DE ENTRADA
+-- 10. ANIMACIÓN DE ENTRADA
 ------------------------------------------------------------
 selectPage("Combat")
 tween(uiScale, 0.5, { Scale = computeScale() }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-task.delay(0.6, function() Notify("Froggy Hub " .. CONFIG.Version, "Panel cargado. Revisa la consola (F9) si algo falla.") end)
+task.delay(0.6, function() Notify("Froggy Hub " .. CONFIG.Version, "Panel cargado. ¡Listo para el caos!") end)
