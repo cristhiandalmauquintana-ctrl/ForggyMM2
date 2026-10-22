@@ -1,5 +1,4 @@
---// MM2 Hub - Movement (Speed & Jump)
-
+--// MM2 Hub - Movement (v1.0)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -7,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local env = (getgenv and getgenv()) or _G
 if env.__MM2_MOVE_CLEANUP then pcall(env.__MM2_MOVE_CLEANUP) end
 
-local Config = { SpeedEnabled = false, Speed = 50, JumpEnabled = false, JumpPower = 100 }
+local Config = { SpeedEnabled = false, Speed = 50, JumpEnabled = false, JumpPower = 100, Version = "v1.0" }
 env.MM2_MOVE_CONFIG = Config
 local connections = {}
 
@@ -16,20 +15,8 @@ table.insert(connections, RunService.Heartbeat:Connect(function()
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hum then return end
 
-    -- Velocidad
-    if Config.SpeedEnabled then
-        hum.WalkSpeed = Config.Speed
-    else
-        hum.WalkSpeed = 16 -- Velocidad por defecto de MM2
-    end
-
-    -- Salto
-    if Config.JumpEnabled then
-        hum.UseJumpPower = true
-        hum.JumpPower = Config.JumpPower
-    else
-        hum.JumpPower = 50 -- Salto por defecto
-    end
+    if Config.SpeedEnabled then hum.WalkSpeed = Config.Speed else hum.WalkSpeed = 16 end
+    if Config.JumpEnabled then hum.UseJumpPower = true; hum.JumpPower = Config.JumpPower else hum.JumpPower = 50 end
 end))
 
 env.__MM2_MOVE_CLEANUP = function()
