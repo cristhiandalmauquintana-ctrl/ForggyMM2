@@ -1,9 +1,10 @@
---// FroggyHub MM2 | Clean Slate - v3.0 (Auto-Win Edition)
+--// FroggyHub MM2 | Emerald Functional Edition - v4.0
+--// Diseño: ChatGPT | Lógica: DeepSeek
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
-local HUB_VERSION = "v3.0"
+local HUB_VERSION = "v4.0"
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -15,13 +16,17 @@ local LOGO_FILES = { "logo.png", "Logo.png" }
 
 local env = (getgenv and getgenv()) or _G
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 if env.__MM2_PANEL_CLEANUP then pcall(env.__MM2_PANEL_CLEANUP) end
+print("[FroggyHub] Iniciando Emerald v" .. HUB_VERSION .. "...")
 
+--==================================================
+-- LÓGICA DE DESCARGA
+--==================================================
 local function downloadModule(names)
     for _, name in ipairs(names) do
         local ok, res = pcall(function() return game:HttpGet(BASE_URL .. name .. "?v=" .. os.time(), true) end)
@@ -32,11 +37,12 @@ end
 
 local function loadModule(names, configKey)
     local src = downloadModule(names)
-    if not src then warn("[FroggyHub] No se pudo descargar: " .. configKey); return nil end
+    if not src then warn("[FroggyHub] ❌ No se pudo descargar: " .. configKey) return nil end
     local chunk, err = loadstring(src)
-    if not chunk then warn("[FroggyHub] Error de sintaxis en " .. configKey .. ": " .. tostring(err)); return nil end
+    if not chunk then warn("[FroggyHub] ❌ Error de sintaxis en " .. configKey .. ": " .. tostring(err)) return nil end
     local ok, runErr = pcall(chunk)
-    if not ok then warn("[FroggyHub] Error ejecutando " .. configKey .. ": " .. tostring(runErr)); return nil end
+    if not ok then warn("[FroggyHub] ❌ Error ejecutando " .. configKey .. ": " .. tostring(runErr)) return nil end
+    print("[FroggyHub] ✅ " .. configKey .. " cargado")
     return env[configKey]
 end
 
@@ -47,7 +53,10 @@ local function fetchLogo()
         local ok, data = pcall(function() return game:HttpGet(BASE_URL .. name .. "?v=" .. os.time(), true) end)
         if ok and type(data) == "string" and #data > 8 and data:sub(2, 4) == "PNG" then
             local path = "FroggyHub_logo.png"
-            if pcall(writefile, path, data) then local okAsset, asset = pcall(getAsset, path); if okAsset and asset and asset ~= "" then return asset end end
+            if pcall(writefile, path, data) then
+                local okAsset, asset = pcall(getAsset, path)
+                if okAsset and asset and asset ~= "" then return asset end
+            end
         end
     end
     return nil
@@ -55,166 +64,455 @@ end
 
 local logoAsset = fetchLogo()
 
-local Themes = {
-    Zafiro = {
-        Void = Color3.fromRGB(5, 7, 22), Bg = Color3.fromRGB(9, 12, 36), BgA = Color3.fromRGB(14, 18, 54),
-        BgB = Color3.fromRGB(28, 14, 62), Row = Color3.fromRGB(16, 21, 58), Sapphire = Color3.fromRGB(46, 92, 255),
-        Violet = Color3.fromRGB(139, 82, 255), Cyan = Color3.fromRGB(92, 200, 255), Text = Color3.fromRGB(232, 238, 255),
-        Dim = Color3.fromRGB(130, 145, 200), Off = Color3.fromRGB(30, 36, 86),
-    },
+--==================================================
+-- TEMA EMERALD (de ChatGPT)
+--==================================================
+local THEME = {
+    Background = Color3.fromRGB(5, 15, 12),
+    Panel = Color3.fromRGB(9, 25, 20),
+    Card = Color3.fromRGB(13, 37, 28),
+    Emerald = Color3.fromRGB(0, 255, 145),
+    EmeraldDark = Color3.fromRGB(0, 155, 91),
+    Mint = Color3.fromRGB(143, 255, 204),
+    White = Color3.fromRGB(240, 255, 247),
+    Muted = Color3.fromRGB(135, 171, 153),
+    Border = Color3.fromRGB(35, 100, 72),
+    Danger = Color3.fromRGB(220, 70, 90),
 }
-local C = Themes.Zafiro
 
-local function tw(obj, t, props, style, dir) local tween = TweenService:Create(obj, TweenInfo.new(t, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out), props); tween:Play(); return tween end
-local function make(class, props, parent) local o = Instance.new(class); for k, v in pairs(props) do o[k] = v end; if parent then o.Parent = parent end; return o end
-local function corner(obj, r) return make("UICorner", { CornerRadius = UDim.new(0, r) }, obj) end
-local function gradient(obj, c1, c2, rot) return make("UIGradient", { Color = ColorSequence.new(c1, c2), Rotation = rot or 0 }, obj) end
+--==================================================
+-- HELPERS
+--==================================================
+local function create(class, props, parent)
+    local o = Instance.new(class)
+    for k, v in pairs(props) do o[k] = v end
+    if parent then o.Parent = parent end
+    return o
+end
 
-local conns = {}
-local function track(c) conns[#conns + 1] = c return c end
-local activeTouch = nil
+local function tween(obj, dur, props, style)
+    local anim = TweenService:Create(obj, TweenInfo.new(dur, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props)
+    anim:Play()
+    return anim
+end
+
+local function round(obj, r) return create("UICorner", { CornerRadius = UDim.new(0, r) }, obj) end
+local function outline(obj, color, trans, thick) return create("UIStroke", { Color = color, Transparency = trans or 0, Thickness = thick or 1 }, obj) end
+
+local connections = {}
+local function track(c) table.insert(connections, c); return c end
 
 local parentGui = (gethui and gethui()) or game:GetService("CoreGui")
-local gui = make("ScreenGui", { Name = "FroggyHub_MM2", ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, parentGui)
+local oldGui = parentGui:FindFirstChild("FroggyEmeraldUI")
+if oldGui then oldGui:Destroy() end
 
-local Config, MoveConfig, TPConfig, AutoWinConfig
-local ready = false
+local gui = create("ScreenGui", {
+    Name = "FroggyEmeraldUI",
+    ResetOnSpawn = false,
+    IgnoreGuiInset = true,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+}, parentGui)
 
-local WIN_W, WIN_H = 580, 340
-local main = make("Frame", { Name = "Main", Size = UDim2.fromOffset(WIN_W, WIN_H), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.Bg, ClipsDescendants = true, Visible = false, Active = false }, gui)
-corner(main, 16)
-local mainScale = make("UIScale", { Scale = 0.5 }, main)
-local bgGrad = gradient(main, C.BgA, C.BgB, 45)
-local stroke = make("UIStroke", { Thickness = 2, Color = Color3.new(1, 1, 1), Transparency = 0.1 }, main)
-local strokeGrad = make("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.Sapphire), ColorSequenceKeypoint.new(0.5, C.Violet), ColorSequenceKeypoint.new(1, C.Cyan) }) }, stroke)
+--==================================================
+-- VENTANA PRINCIPAL
+--==================================================
+local main = create("Frame", {
+    Name = "Main",
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromOffset(600, 380),
+    BackgroundColor3 = THEME.Background,
+    BorderSizePixel = 0,
+    ClipsDescendants = true,
+    Active = false,
+}, gui)
 
-local header = make("Frame", { Name = "Header", Size = UDim2.new(1, 0, 0, 54), BackgroundTransparency = 1, ZIndex = 10 }, main)
-local brand = make("Frame", { Position = UDim2.fromOffset(20, 8), Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, ZIndex = 11 }, header)
-make("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, brand)
+round(main, 18)
+outline(main, THEME.EmeraldDark, 0.15, 1.5)
 
-local title = make("TextLabel", { LayoutOrder = 1, Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, Text = "FroggyHub", TextColor3 = Color3.new(1, 1, 1), Font = Enum.Font.GothamBlack, TextSize = 24, ZIndex = 11 }, brand)
-make("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.Cyan), ColorSequenceKeypoint.new(0.5, C.Violet), ColorSequenceKeypoint.new(1, C.Cyan) }) }, title)
+local mainScale = create("UIScale", { Scale = 0.9 }, main)
 
-local pill = make("Frame", { LayoutOrder = 2, Size = UDim2.fromOffset(46, 20), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 11 }, brand)
-corner(pill, 10); gradient(pill, C.Sapphire, C.Violet, 0)
-make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "MM2", TextColor3 = Color3.new(1, 1, 1), Font = Enum.Font.GothamBlack, TextSize = 12, ZIndex = 12 }, pill)
-
-local versionBadge = make("TextLabel", { LayoutOrder = 3, Size = UDim2.fromOffset(36, 16), BackgroundColor3 = C.Cyan, BackgroundTransparency = 0.8, Text = HUB_VERSION, TextColor3 = C.Cyan, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 11 }, brand)
-corner(versionBadge, 6)
-
-local function headerButton(text, xOff, color)
-    local b = make("TextButton", { Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, xOff, 0, 13), BackgroundColor3 = C.Row, BackgroundTransparency = 0.2, Text = text, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 14, AutoButtonColor = false, ZIndex = 12 }, header)
-    corner(b, 8)
-    b.MouseEnter:Connect(function() tw(b, 0.2, { BackgroundColor3 = color, BackgroundTransparency = 0 }) end)
-    b.MouseLeave:Connect(function() tw(b, 0.2, { BackgroundColor3 = C.Row, BackgroundTransparency = 0.2 }) end)
-    return b
+local function updateScale()
+    local cam = workspace.CurrentCamera
+    if not cam then return end
+    local vp = cam.ViewportSize
+    mainScale.Scale = math.clamp(math.min(vp.X / 680, vp.Y / 440), 0.65, 1)
 end
-local closeBtn = headerButton("✕", -38, Color3.fromRGB(220, 60, 90))
-local hideBtn = headerButton("–", -70, C.Sapphire)
+updateScale()
 
-local TABS = {
-    { id = "main",     name = "Auto-Win",  live = true },
-    { id = "visual",   name = "Visual",    live = true },
-    { id = "player",   name = "Movimiento",live = true },
-    { id = "tp",       name = "Teleport",  live = true },
-    { id = "settings", name = "Ajustes",   desc = "Cambia el tema y personaliza la interfaz.", settings = true },
-}
-local TAB_H = 34
-local SIDE_H = 250
-local function tabY(i) return TABS[i].settings and (SIDE_H - TAB_H) or ((i - 1) * 35) end
+--==================================================
+-- FONDO ANIMADO
+--==================================================
+local bg = create("Frame", {
+    Name = "AnimatedBackground", Size = UDim2.fromScale(1, 1),
+    BackgroundColor3 = THEME.Background, BorderSizePixel = 0, ZIndex = 0,
+}, main)
+round(bg, 18)
 
-local side = make("CanvasGroup", { Name = "Sidebar", Position = UDim2.fromOffset(14, 68), Size = UDim2.fromOffset(132, SIDE_H), BackgroundTransparency = 1, GroupTransparency = 1, ZIndex = 10 }, main)
-local indicator = make("Frame", { Size = UDim2.new(1, 0, 0, TAB_H), Position = UDim2.fromOffset(0, tabY(1)), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.1, ZIndex = 10 }, side)
-corner(indicator, 10); gradient(indicator, C.Sapphire, C.Violet, 0)
+local bgGrad = create("UIGradient", {
+    Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(4, 18, 13)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(8, 47, 31)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(3, 13, 12)),
+    }),
+}, bg)
 
-local tabButtons = {}
-for i, tab in ipairs(TABS) do
-    local b = make("TextButton", { Size = UDim2.new(1, 0, 0, TAB_H), Position = UDim2.fromOffset(0, tabY(i)), BackgroundTransparency = 1, Text = tab.name, TextColor3 = (i == 1) and C.Text or C.Dim, Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, AutoButtonColor = false, ZIndex = 11 }, side)
-    make("UIPadding", { PaddingLeft = UDim.new(0, 14) }, b)
-    tabButtons[i] = b
+local glows = {}
+for i = 1, 3 do
+    local glow = create("Frame", {
+        Size = UDim2.fromOffset(240, 240),
+        Position = UDim2.new((i - 1) * 0.38, -80, (i % 2 == 0) and 0.6 or 0.1, -60),
+        BackgroundColor3 = THEME.Emerald, BackgroundTransparency = 0.94,
+        BorderSizePixel = 0, ZIndex = 1,
+    }, bg)
+    round(glow, 120)
+    create("UIGradient", {
+        Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.15), NumberSequenceKeypoint.new(1, 1) }),
+        Rotation = 45,
+    }, glow)
+    table.insert(glows, glow)
 end
 
-local content = make("Frame", { Name = "Content", Position = UDim2.fromOffset(162, 68), Size = UDim2.fromOffset(404, SIDE_H), BackgroundTransparency = 1, ZIndex = 10 }, main)
+local light = create("Frame", {
+    Size = UDim2.new(0, 180, 1, 0), Position = UDim2.new(0, -220, 0, 0),
+    BackgroundTransparency = 1, ZIndex = 2,
+}, bg)
+create("UIGradient", {
+    Rotation = 0,
+    Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.93), NumberSequenceKeypoint.new(1, 1) }),
+    Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, THEME.Emerald), ColorSequenceKeypoint.new(1, THEME.Mint) }),
+}, light)
 
-local function newPage()
-    local page = make("ScrollingFrame", { 
-        Size = UDim2.fromScale(1, 1), 
-        BackgroundTransparency = 1, 
-        BorderSizePixel = 0, 
-        ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(),
+--==================================================
+-- HEADER
+--==================================================
+local header = create("Frame", { Size = UDim2.new(1, 0, 0, 70), BackgroundTransparency = 1, ZIndex = 5, Active = true }, main)
+
+local logo = create("Frame", {
+    Size = UDim2.fromOffset(42, 42), Position = UDim2.fromOffset(18, 14),
+    BackgroundColor3 = THEME.Card, BorderSizePixel = 0, ZIndex = 6,
+}, header)
+round(logo, 14); outline(logo, THEME.Emerald, 0.35, 1)
+
+if logoAsset then
+    create("ImageLabel", { Size = UDim2.new(1, -6, 1, -6), Position = UDim2.fromOffset(3, 3), BackgroundTransparency = 1, Image = logoAsset, ScaleType = Enum.ScaleType.Fit, ZIndex = 7 }, logo)
+else
+    create("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "F", TextColor3 = THEME.Emerald, Font = Enum.Font.GothamBlack, TextSize = 26, ZIndex = 7 }, logo)
+end
+
+local title = create("TextLabel", {
+    Position = UDim2.fromOffset(72, 13), Size = UDim2.fromOffset(220, 28),
+    BackgroundTransparency = 1, Text = "FroggyHub", TextColor3 = THEME.White,
+    Font = Enum.Font.GothamBlack, TextSize = 23,
+    TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 6,
+}, header)
+create("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, THEME.White), ColorSequenceKeypoint.new(1, THEME.Emerald) }) }, title)
+
+create("TextLabel", {
+    Position = UDim2.fromOffset(73, 40), Size = UDim2.fromOffset(220, 17),
+    BackgroundTransparency = 1, Text = "EMERALD EDITION  •  " .. HUB_VERSION,
+    TextColor3 = THEME.Muted, Font = Enum.Font.GothamMedium, TextSize = 10,
+    TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 6,
+}, header)
+
+local statusDot = create("Frame", {
+    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -64, 0, 26),
+    Size = UDim2.fromOffset(9, 9), BackgroundColor3 = THEME.Emerald, BorderSizePixel = 0, ZIndex = 6,
+}, header)
+round(statusDot, 9)
+create("TextLabel", {
+    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -79, 0, 22),
+    Size = UDim2.fromOffset(75, 18), BackgroundTransparency = 1,
+    Text = "INTERFAZ", TextColor3 = THEME.Mint, Font = Enum.Font.GothamBold,
+    TextSize = 10, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 6,
+}, header)
+
+local closeBtn = create("TextButton", {
+    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -15, 0, 15),
+    Size = UDim2.fromOffset(30, 30), BackgroundColor3 = THEME.Card,
+    Text = "×", TextColor3 = THEME.Muted, Font = Enum.Font.GothamBold,
+    TextSize = 22, AutoButtonColor = false, ZIndex = 8,
+}, header)
+round(closeBtn, 10)
+track(closeBtn.MouseEnter:Connect(function() tween(closeBtn, 0.2, { BackgroundColor3 = Color3.fromRGB(105, 35, 50), TextColor3 = THEME.White }) end))
+track(closeBtn.MouseLeave:Connect(function() tween(closeBtn, 0.2, { BackgroundColor3 = THEME.Card, TextColor3 = THEME.Muted }) end))
+
+local divider = create("Frame", {
+    Position = UDim2.fromOffset(18, 70), Size = UDim2.new(1, -36, 0, 1),
+    BackgroundColor3 = THEME.EmeraldDark, BackgroundTransparency = 0.35,
+    BorderSizePixel = 0, ZIndex = 5,
+}, main)
+
+--==================================================
+-- SIDEBAR
+--==================================================
+local sidebar = create("Frame", {
+    Position = UDim2.fromOffset(16, 88), Size = UDim2.new(0, 145, 1, -106),
+    BackgroundColor3 = THEME.Panel, BackgroundTransparency = 0.18,
+    BorderSizePixel = 0, ZIndex = 5,
+}, main)
+round(sidebar, 14); outline(sidebar, THEME.Border, 0.65, 1)
+create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, sidebar)
+create("UIPadding", { PaddingTop = UDim.new(0, 12), PaddingLeft = UDim.new(0, 9), PaddingRight = UDim.new(0, 9) }, sidebar)
+
+local content = create("Frame", {
+    Position = UDim2.fromOffset(175, 88), Size = UDim2.new(1, -191, 1, -106),
+    BackgroundTransparency = 1, ZIndex = 5,
+}, main)
+
+local pages = {}
+local currentPage = nil
+
+local function createPage(name, icon)
+    local button = create("TextButton", {
+        Size = UDim2.new(1, 0, 0, 42), BackgroundColor3 = THEME.EmeraldDark,
+        BackgroundTransparency = 1, Text = "", AutoButtonColor = false,
+        LayoutOrder = #pages + 1, ZIndex = 6,
+    }, sidebar)
+    round(button, 10)
+
+    local iconLabel = create("TextLabel", {
+        Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(25, 42),
+        BackgroundTransparency = 1, Text = icon, TextColor3 = THEME.Muted,
+        Font = Enum.Font.GothamBold, TextSize = 17, ZIndex = 7,
+    }, button)
+
+    local label = create("TextLabel", {
+        Position = UDim2.fromOffset(39, 0), Size = UDim2.new(1, -45, 1, 0),
+        BackgroundTransparency = 1, Text = name, TextColor3 = THEME.Muted,
+        Font = Enum.Font.GothamSemibold, TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, button)
+
+    local page = create("ScrollingFrame", {
+        Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+        BorderSizePixel = 0, ScrollBarThickness = 3,
+        ScrollBarImageColor3 = THEME.Emerald,
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
-        ScrollingDirection = Enum.ScrollingDirection.Y,
-        Visible = false, 
-        ZIndex = 10,
-        Active = false
+        CanvasSize = UDim2.new(), Visible = false, ZIndex = 5, Active = false,
     }, content)
-    make("UIPadding", { PaddingBottom = UDim.new(0, 10), PaddingRight = UDim.new(0, 4) }, page)
-    make("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, page)
+    create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }, page)
+    create("UIPadding", { PaddingBottom = UDim.new(0, 8), PaddingRight = UDim.new(0, 5) }, page)
+
+    local entry = { Button = button, Label = label, Icon = iconLabel, Page = page, Name = name }
+    table.insert(pages, entry)
+
+    local function select()
+        if currentPage == entry then return end
+        for _, item in ipairs(pages) do
+            local sel = item == entry
+            item.Page.Visible = sel
+            tween(item.Button, 0.2, { BackgroundTransparency = sel and 0.15 or 1 })
+            tween(item.Label, 0.2, { TextColor3 = sel and THEME.White or THEME.Muted })
+            tween(item.Icon, 0.2, { TextColor3 = sel and THEME.Emerald or THEME.Muted })
+        end
+        currentPage = entry
+    end
+    track(button.MouseButton1Click:Connect(select))
     return page
 end
 
-local function createToggleCard(parent, name, desc, version, get, set, available)
-    local card = make("Frame", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, Size = UDim2.new(1, 0, 0, 96), ZIndex = 10 }, parent)
-    corner(card, 14)
-    local cs = make("UIStroke", { Color = C.Sapphire, Transparency = 0.6, Thickness = 1 }, card)
-    local btn = make("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 11 }, card)
-    
-    make("TextLabel", { Size = UDim2.new(1, -28, 0, 20), Position = UDim2.fromOffset(14, 12), BackgroundTransparency = 1, Text = name, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 }, btn)
+local homePage = createPage("Auto-Win", "★")
+local visualPage = createPage("Visual", "◉")
+local movementPage = createPage("Movimiento", "➤")
+local teleportPage = createPage("Teleport", "✈")
+local settingsPage = createPage("Ajustes", "⚙")
+
+--==================================================
+-- TARJETA CON TOGGLE (Estilo Emerald)
+--==================================================
+local function createToggle(parent, name, desc, version, get, set, available)
+    local card = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 82),
+        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
+        BorderSizePixel = 0, ZIndex = 6,
+    }, parent)
+    round(card, 12); outline(card, THEME.Border, 0.6, 1)
+
+    local accent = create("Frame", {
+        Position = UDim2.fromOffset(0, 13), Size = UDim2.new(0, 3, 0, 56),
+        BackgroundColor3 = available and THEME.Emerald or THEME.Danger,
+        BorderSizePixel = 0, ZIndex = 7,
+    }, card)
+    round(accent, 3)
+
+    local btn = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 11 }, card)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 13), Size = UDim2.new(1, -90, 0, 22),
+        BackgroundTransparency = 1, Text = name, TextColor3 = THEME.White,
+        Font = Enum.Font.GothamBold, TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, btn)
+
     local descText = available and (desc .. (version and ("  |  " .. version) or "")) or "módulo no cargado"
-    make("TextLabel", { Size = UDim2.new(1, -28, 0, 28), Position = UDim2.fromOffset(14, 34), BackgroundTransparency = 1, Text = descText, TextColor3 = available and C.Dim or Color3.fromRGB(220, 90, 110), Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextWrapped = true, ZIndex = 12 }, btn)
-    
-    local state = make("TextLabel", { Size = UDim2.fromOffset(60, 16), Position = UDim2.fromOffset(14, 70), BackgroundTransparency = 1, Text = "OFF", TextColor3 = C.Dim, Font = Enum.Font.GothamBold, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 }, btn)
-    local sw = make("Frame", { Size = UDim2.fromOffset(46, 24), Position = UDim2.new(1, -60, 0, 66), BackgroundColor3 = C.Off, ZIndex = 12 }, btn)
-    corner(sw, 12)
-    local swGrad = gradient(sw, C.Sapphire, C.Violet, 0)
-    swGrad.Enabled = false
-    local knob = make("Frame", { Size = UDim2.fromOffset(18, 18), Position = UDim2.fromOffset(3, 3), BackgroundColor3 = C.Dim, ZIndex = 13 }, sw)
-    corner(knob, 9)
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 38), Size = UDim2.new(1, -28, 0, 30),
+        BackgroundTransparency = 1, Text = descText,
+        TextColor3 = available and THEME.Muted or THEME.Danger,
+        Font = Enum.Font.Gotham, TextSize = 11, TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 7,
+    }, btn)
+
+    local sw = create("Frame", {
+        AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -15, 0, 41),
+        Size = UDim2.fromOffset(40, 20), BackgroundColor3 = THEME.Border,
+        BorderSizePixel = 0, ZIndex = 8,
+    }, btn)
+    round(sw, 10)
+
+    local knob = create("Frame", {
+        AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 2, 0.5, 0),
+        Size = UDim2.fromOffset(16, 16), BackgroundColor3 = THEME.Muted,
+        BorderSizePixel = 0, ZIndex = 9,
+    }, sw)
+    round(knob, 8)
 
     local function render()
         local on = available and get() and true or false
-        swGrad.Enabled = on
-        state.Text = on and "ON" or "OFF"
-        tw(state, 0.25, { TextColor3 = on and C.Cyan or C.Dim })
-        tw(sw, 0.25, { BackgroundColor3 = on and Color3.new(1, 1, 1) or C.Off })
-        tw(knob, 0.3, { Position = on and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3), BackgroundColor3 = on and Color3.new(1, 1, 1) or C.Dim }, Enum.EasingStyle.Back)
-        tw(cs, 0.3, { Color = on and C.Cyan or C.Sapphire, Transparency = on and 0.1 or 0.6 })
+        tween(sw, 0.2, { BackgroundColor3 = on and THEME.Emerald or THEME.Border })
+        tween(knob, 0.25, { Position = on and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0), BackgroundColor3 = on and THEME.White or THEME.Muted }, Enum.EasingStyle.Back)
     end
 
     if available then
-        btn.MouseButton1Click:Connect(function() set(not get()) render() end)
+        btn.MouseButton1Click:Connect(function() set(not get()); render() end)
+        btn.MouseEnter:Connect(function() tween(card, 0.15, { BackgroundTransparency = 0 }) end)
+        btn.MouseLeave:Connect(function() tween(card, 0.15, { BackgroundTransparency = 0.12 }) end)
     end
     render()
     return card
 end
 
-local pages = {}
-for i, tab in ipairs(TABS) do pages[i] = newPage() end
+--==================================================
+-- TARJETA CON SLIDER
+--==================================================
+local function createSlider(parent, name, desc, minV, maxV, stepV, get, set, available)
+    local card = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 82),
+        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
+        BorderSizePixel = 0, ZIndex = 6,
+    }, parent)
+    round(card, 12); outline(card, THEME.Border, 0.6, 1)
 
-local current = 1
-local function selectTab(i)
-    if i == current or not ready then return end
-    local old = pages[current]; current = i
-    tw(indicator, 0.4, { Position = UDim2.fromOffset(0, tabY(i)) })
-    for k, b in ipairs(tabButtons) do tw(b, 0.25, { TextColor3 = (k == i) and C.Text or C.Dim }) end
-    old.Visible = false
-    local new = pages[i]; new.Visible = true
+    local accent = create("Frame", {
+        Position = UDim2.fromOffset(0, 13), Size = UDim2.new(0, 3, 0, 56),
+        BackgroundColor3 = THEME.Mint, BorderSizePixel = 0, ZIndex = 7,
+    }, card)
+    round(accent, 3)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -80, 0, 18),
+        BackgroundTransparency = 1, Text = name, TextColor3 = THEME.White,
+        Font = Enum.Font.GothamBold, TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, card)
+
+    local valueLabel = create("TextLabel", {
+        Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -30, 0, 18),
+        BackgroundTransparency = 1, Text = tostring(get()), TextColor3 = THEME.Emerald,
+        Font = Enum.Font.GothamBold, TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 7,
+    }, card)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 30), Size = UDim2.new(1, -28, 0, 14),
+        BackgroundTransparency = 1, Text = desc, TextColor3 = THEME.Muted,
+        Font = Enum.Font.Gotham, TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, card)
+
+    local hit = create("Frame", {
+        Position = UDim2.fromOffset(15, 50), Size = UDim2.new(1, -30, 0, 20),
+        BackgroundTransparency = 1, ZIndex = 8, Active = true,
+    }, card)
+
+    local trackFrame = create("Frame", {
+        AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = THEME.Border,
+        BorderSizePixel = 0, ZIndex = 9,
+    }, hit)
+    round(trackFrame, 2)
+
+    local fill = create("Frame", {
+        Size = UDim2.fromScale((get() - minV) / (maxV - minV), 1),
+        BackgroundColor3 = THEME.Emerald, BorderSizePixel = 0, ZIndex = 10,
+    }, trackFrame)
+    round(fill, 2)
+
+    local knob = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new((get() - minV) / (maxV - minV), 0, 0.5, 0),
+        Size = UDim2.fromOffset(14, 14), BackgroundColor3 = THEME.White,
+        BorderSizePixel = 0, ZIndex = 11,
+    }, trackFrame)
+    round(knob, 7); outline(knob, THEME.Emerald, 0, 2)
+
+    local dragging = false
+    local function update(x)
+        local w = math.max(1, trackFrame.AbsoluteSize.X)
+        local rel = math.clamp((x - trackFrame.AbsolutePosition.X) / w, 0, 1)
+        local v = minV + rel * (maxV - minV)
+        v = math.floor(v / stepV + 0.5) * stepV
+        v = math.clamp(v, minV, maxV)
+        set(v); valueLabel.Text = tostring(v)
+        fill.Size = UDim2.fromScale(rel, 1)
+        knob.Position = UDim2.new(rel, 0, 0.5, 0)
+    end
+
+    track(hit.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; update(input.Position.X)
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false; conn:Disconnect() end
+            end)
+        end
+    end))
+    track(UserInputService.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            update(input.Position.X)
+        end
+    end))
+    return card
 end
-for i, b in ipairs(tabButtons) do b.MouseButton1Click:Connect(function() selectTab(i) end) end
 
-local function makeDraggable(handle, getPos, setPos, onTap)
-    local dragging, dragStart, startPos, moved
+local function createSoon(parent, label)
+    local card = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 82), BackgroundColor3 = THEME.Card,
+        BackgroundTransparency = 0.4, BorderSizePixel = 0, ZIndex = 6,
+    }, parent)
+    round(card, 12); outline(card, THEME.Muted, 0.7, 1)
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 13), Size = UDim2.new(1, -28, 0, 22),
+        BackgroundTransparency = 1, Text = label, TextColor3 = THEME.Muted,
+        Font = Enum.Font.GothamBold, TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, card)
+    local badge = create("TextLabel", {
+        Position = UDim2.fromOffset(15, 45), Size = UDim2.fromOffset(100, 18),
+        BackgroundColor3 = THEME.EmeraldDark, BackgroundTransparency = 0.7,
+        Text = "PRÓXIMAMENTE", TextColor3 = THEME.White,
+        Font = Enum.Font.GothamBold, TextSize = 9, ZIndex = 7,
+    }, card)
+    round(badge, 9)
+    return card
+end
+
+--==================================================
+-- SISTEMA DE ARRASTRE (Multi-touch fix)
+--==================================================
+local activeTouch = nil
+local function makeDraggable(handle, onDrag)
+    local dragging, startPos, startPos2, moved
     track(handle.InputBegan:Connect(function(input)
         if activeTouch then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             activeTouch = input
-            dragging = true; dragStart = input.Position; startPos = getPos(); moved = false
+            dragging = true; startPos = input.Position; startPos2 = main.Position; moved = false
             local conn; conn = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    activeTouch = nil
-                    if not moved and onTap then onTap() end
+                    dragging = false; activeTouch = nil
                     conn:Disconnect()
                 end
             end)
@@ -222,94 +520,210 @@ local function makeDraggable(handle, getPos, setPos, onTap)
     end))
     track(UserInputService.InputChanged:Connect(function(input)
         if not dragging or activeTouch ~= input then return end
-        local d = input.Position - dragStart
+        local d = input.Position - startPos
         if d.Magnitude > 5 then moved = true end
-        if moved then setPos(startPos.X + d.X, startPos.Y + d.Y) end
+        if moved then
+            main.Position = UDim2.new(startPos2.X.Scale, startPos2.X.Offset + d.X, startPos2.Y.Scale, startPos2.Y.Offset + d.Y)
+        end
     end))
 end
+makeDraggable(header)
 
-makeDraggable(header, function() return Vector2.new(main.AbsolutePosition.X, main.AbsolutePosition.Y) end, function(x, y) main.Position = UDim2.fromOffset(x, y) end)
-
-local BUBBLE_SIZE = 46
-local bubble = make("TextButton", { Size = UDim2.fromOffset(BUBBLE_SIZE, BUBBLE_SIZE), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = C.Row, Text = "", Visible = false, AutoButtonColor = false, ZIndex = 100 }, gui)
-corner(bubble, BUBBLE_SIZE / 2)
-local bubbleStroke = make("UIStroke", { Thickness = 2, Color = C.Sapphire }, bubble)
-gradient(bubble, C.BgA, C.BgB, 45)
+--==================================================
+-- BURBUJA CON LOGO
+--==================================================
+local BUBBLE = 52
+local bubble = create("TextButton", {
+    Size = UDim2.fromOffset(BUBBLE, BUBBLE), Position = UDim2.fromScale(0.5, 0.5),
+    BackgroundColor3 = THEME.Card, BorderSizePixel = 0, Text = "",
+    Visible = false, AutoButtonColor = false, ZIndex = 100,
+}, gui)
+round(bubble, BUBBLE / 2)
+local bubbleStroke = outline(bubble, THEME.Emerald, 0.2, 2)
 
 if logoAsset then
-    make("ImageLabel", { Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Image = logoAsset, ScaleType = Enum.ScaleType.Fit }, bubble)
+    create("ImageLabel", { Size = UDim2.new(1, -8, 1, -8), Position = UDim2.new(0, 4, 0, 4), BackgroundTransparency = 1, Image = logoAsset, ScaleType = Enum.ScaleType.Fit, ZIndex = 101 }, bubble)
 else
-    make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "F", TextColor3 = C.Cyan, Font = Enum.Font.GothamBlack, TextSize = 22 }, bubble)
+    create("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "F", TextColor3 = THEME.Emerald, Font = Enum.Font.GothamBlack, TextSize = 24, ZIndex = 101 }, bubble)
 end
+
+local bubbleDragging, bubbleMoved
+local function makeBubbleDraggable()
+    track(bubble.InputBegan:Connect(function(input)
+        if activeTouch then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            activeTouch = input
+            bubbleDragging = true
+            local startPos = input.Position
+            local startPos2 = Vector2.new(bubble.AbsolutePosition.X, bubble.AbsolutePosition.Y)
+            bubbleMoved = false
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    bubbleDragging = false; activeTouch = nil
+                    if not bubbleMoved then setShown(true) end
+                    conn:Disconnect()
+                end
+            end)
+            track(UserInputService.InputChanged:Connect(function(inp)
+                if not bubbleDragging or activeTouch ~= input then return end
+                local d = inp.Position - startPos
+                if d.Magnitude > 5 then bubbleMoved = true end
+                if bubbleMoved then bubble.Position = UDim2.fromOffset(startPos2.X + d.X, startPos2.Y + d.Y) end
+            end))
+        end
+    end))
+end
+makeBubbleDraggable()
 
 local shown = true
 local function setShown(v)
-    if not ready or shown == v then return end
+    if shown == v then return end
     shown = v
     if v then
         bubble.Visible = false; main.Visible = true
-        tw(mainScale, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
+        tween(mainScale, 0.45, { Scale = math.clamp(math.min(workspace.CurrentCamera.ViewportSize.X / 680, workspace.CurrentCamera.ViewportSize.Y / 440), 0.65, 1) }, Enum.EasingStyle.Back)
     else
-        local t = tw(mainScale, 0.3, { Scale = 0.01 }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-        t.Completed:Once(function() 
-            if not shown then 
-                main.Visible = false; bubble.Visible = true; 
+        local t = tween(mainScale, 0.3, { Scale = 0.01 }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+        t.Completed:Once(function()
+            if not shown then
+                main.Visible = false; bubble.Visible = true
                 bubble.Position = UDim2.fromOffset(main.AbsolutePosition.X, main.AbsolutePosition.Y)
-            end 
+            end
         end)
     end
 end
 
-makeDraggable(bubble, function() return Vector2.new(bubble.AbsolutePosition.X, bubble.AbsolutePosition.Y) end, function(x, y) bubble.Position = UDim2.fromOffset(x, y) end, function() setShown(true) end)
-hideBtn.MouseButton1Click:Connect(function() setShown(false) end)
+create("TextButton", {
+    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -52, 0, 15),
+    Size = UDim2.fromOffset(30, 30), BackgroundColor3 = THEME.Card,
+    Text = "–", TextColor3 = THEME.Muted, Font = Enum.Font.GothamBold,
+    TextSize = 20, AutoButtonColor = false, ZIndex = 8,
+}, header).MouseButton1Click:Connect(function() setShown(false) end)
+
+--==================================================
+-- ANIMACIONES
+--==================================================
+local animRunning = true
+track(RunService.RenderStepped:Connect(function()
+    if not animRunning or not gui.Parent then return end
+    bgGrad.Rotation = (bgGrad.Rotation + 0.08) % 360
+end))
+
+for i, g in ipairs(glows) do
+    task.spawn(function()
+        while animRunning and gui.Parent do
+            local target = UDim2.new(math.random(5, 85) / 100, -100, math.random(10, 85) / 100, -100)
+            local t = tween(g, math.random(4, 7), { Position = target })
+            t.Completed:Wait()
+            task.wait(0.2 * i)
+        end
+    end)
+end
+
+task.spawn(function()
+    while animRunning and gui.Parent do
+        tween(light, 2.5, { Position = UDim2.new(1, 180, 0, 0) })
+        task.wait(3)
+        if not animRunning then break end
+        light.Position = UDim2.new(0, -220, 0, 0)
+        task.wait(1)
+    end
+end)
+
+--==================================================
+-- CARGA DE MÓDULOS Y CONSTRUCCIÓN
+--==================================================
+local Config, MoveConfig, TPConfig, AutoWinConfig
 
 env.__MM2_PANEL_CLEANUP = function()
-    for _, c in ipairs(conns) do pcall(function() c:Disconnect() end) end
+    animRunning = false
     if env.__MM2_ESP_CLEANUP then pcall(env.__MM2_ESP_CLEANUP) end
     if env.__MM2_MOVE_CLEANUP then pcall(env.__MM2_MOVE_CLEANUP) end
     if env.__MM2_TP_CLEANUP then pcall(env.__MM2_TP_CLEANUP) end
     if env.__MM2_AUTOWIN_CLEANUP then pcall(env.__MM2_AUTOWIN_CLEANUP) end
-    gui:Destroy(); env.__MM2_PANEL_CLEANUP = nil
+    for _, c in ipairs(connections) do pcall(function() c:Disconnect() end) end
+    gui:Destroy()
+    env.__MM2_PANEL_CLEANUP = nil
 end
-closeBtn.MouseButton1Click:Connect(function() env.__MM2_PANEL_CLEANUP() end)
+closeBtn.MouseButton1Click:Connect(function()
+    tween(mainScale, 0.25, { Scale = 0 })
+    task.delay(0.3, env.__MM2_PANEL_CLEANUP)
+end)
 
 task.spawn(function()
-    task.wait(2)
-    main.Visible = true
-    tw(mainScale, 0.7, { Scale = 1 }, Enum.EasingStyle.Back)
-    tw(side, 0.5, { GroupTransparency = 0 })
-
+    task.wait(0.3)
+    print("[FroggyHub] Cargando módulos...")
     Config = loadModule(ESP_FILES, "MM2_ESP_CONFIG")
     MoveConfig = loadModule(MOVE_FILES, "MM2_MOVE_CONFIG")
     TPConfig = loadModule(TP_FILES, "MM2_TP_CONFIG")
     AutoWinConfig = loadModule(AUTOWIN_FILES, "MM2_AUTOWIN_CONFIG")
 
+    print("[FroggyHub] Construyendo UI...")
+
     -- PESTAÑA 1: AUTO-WIN
     if AutoWinConfig then
-        createToggleCard(pages[1], "Activar Auto-Win", "Gana la partida automáticamente.", AutoWinConfig.Version, function() return AutoWinConfig.Enabled end, function(v) AutoWinConfig.Enabled = v end, true)
+        createToggle(homePage, "Auto-Win", "Teletransporta y ataca automáticamente según tu rol.", AutoWinConfig.Version, function() return AutoWinConfig.Enabled end, function(v) AutoWinConfig.Enabled = v end, true)
+        createSoon(homePage, "Kill All")
+        createSoon(homePage, "Auto-Farm")
     else
-        createSoonCard(pages[1], "Auto-Win (No cargado)")
+        createSoon(homePage, "Auto-Win (No cargado)")
     end
 
-    -- PESTAÑA 2: VISUAL (ESP)
-    createToggleCard(pages[2], "ESP General", "Activa el ESP.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
+    -- PESTAÑA 2: VISUAL
     if Config then
-        createToggleCard(pages[2], "Cajas 2D", "Cajas en el enemigo.", nil, function() return Config.Boxes end, function(v) Config.Boxes = v end, true)
-        createToggleCard(pages[2], "Nombres y Roles", "Muestra Asesino/Sheriff.", nil, function() return Config.Names end, function(v) Config.Names = v end, true)
+        createToggle(visualPage, "ESP General", "Activa el ESP completo.", Config.Version, function() return Config.Enabled end, function(v) Config.Enabled = v end, true)
+        createToggle(visualPage, "Cajas 2D", "Cajas alrededor del enemigo.", nil, function() return Config.Boxes end, function(v) Config.Boxes = v end, true)
+        createToggle(visualPage, "Nombres y Roles", "Muestra Asesino/Sheriff.", nil, function() return Config.Names end, function(v) Config.Names = v end, true)
+        createToggle(visualPage, "ESP Armas", "Armas en el suelo.", nil, function() return Config.ShowWeapons end, function(v) Config.ShowWeapons = v end, true)
+        createToggle(visualPage, "ESP Monedas", "Monedas en el suelo.", nil, function() return Config.ShowCoins end, function(v) Config.ShowCoins = v end, true)
+    else
+        createSoon(visualPage, "ESP (No cargado)")
     end
 
     -- PESTAÑA 3: MOVIMIENTO
     if MoveConfig then
-        createToggleCard(pages[3], "Velocidad", "Aumenta la velocidad.", MoveConfig.Version, function() return MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, true)
-        createToggleCard(pages[3], "Salto Alto", "Aumenta el salto.", MoveConfig.Version, function() return MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, true)
+        createToggle(movementPage, "Velocidad", "Aumenta la velocidad.", MoveConfig.Version, function() return MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, true)
+        createSlider(movementPage, "Velocidad (studs/s)", "Ajusta la velocidad exacta.", 16, 200, 4, function() return MoveConfig.Speed end, function(v) MoveConfig.Speed = v end, true)
+        createToggle(movementPage, "Salto Alto", "Aumenta el salto.", MoveConfig.Version, function() return MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, true)
+        createSlider(movementPage, "Salto (power)", "Ajusta la fuerza del salto.", 50, 300, 10, function() return MoveConfig.JumpPower end, function(v) MoveConfig.JumpPower = v end, true)
+    else
+        createSoon(movementPage, "Movimiento (No cargado)")
     end
 
     -- PESTAÑA 4: TELEPORT
     if TPConfig then
-        createToggleCard(pages[4], "TP a Jugador", "Va al jugador más cercano.", TPConfig.Version, function() return TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, true)
-        createToggleCard(pages[4], "TP a Moneda", "Busca monedas y teletransporta.", TPConfig.Version, function() return TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, true)
+        createToggle(teleportPage, "TP a Jugador", "Va al jugador más cercano.", TPConfig.Version, function() return TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, true)
+        createToggle(teleportPage, "TP a Moneda", "Busca monedas y teletransporta.", TPConfig.Version, function() return TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, true)
+    else
+        createSoon(teleportPage, "Teleport (No cargado)")
     end
 
-    pages[1].Visible = true
-    ready = true
+    -- PESTAÑA 5: AJUSTES
+    createSoon(settingsPage, "Selector de temas")
+    createSoon(settingsPage, "Guardar configuración")
+
+    -- Footer
+    create("TextLabel", {
+        AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -7),
+        Size = UDim2.fromOffset(200, 14), BackgroundTransparency = 1,
+        Text = "FROGGYHUB  •  EMERALD EDITION", TextColor3 = THEME.Muted,
+        Font = Enum.Font.GothamMedium, TextSize = 9,
+        TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 8,
+    }, main)
+
+    -- Estado inicial
+    homePage.Visible = true
+    currentPage = pages[1]
+    for _, item in ipairs(pages) do
+        local sel = item == currentPage
+        item.Button.BackgroundTransparency = sel and 0.15 or 1
+        item.Label.TextColor3 = sel and THEME.White or THEME.Muted
+        item.Icon.TextColor3 = sel and THEME.Emerald or THEME.Muted
+    end
+
+    main.Position = UDim2.fromScale(0.5, 0.54)
+    main.BackgroundTransparency = 1
+    tween(main, 0.6, { Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
+
+    print("[FroggyHub] ✅ Emerald UI construida correctamente.")
 end)
