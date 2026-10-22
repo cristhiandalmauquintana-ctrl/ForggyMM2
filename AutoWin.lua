@@ -1,32 +1,33 @@
---// MM2 Hub - Auto-Win (v2.0 - Full Combat)
+--// MM2 Hub - Auto-Win (v4.1 - Void Launch)
+--// El Sheriff lanza al Murderer fuera del mapa.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
 
 local env = (getgenv and getgenv()) or _G
 if env.__MM2_AUTOWIN_CLEANUP then pcall(env.__MM2_AUTOWIN_CLEANUP) end
 
-local Config = { Enabled = false, Version = "v2.0" }
+local Config = { Enabled = false, Version = "v4.1" }
 env.MM2_AUTOWIN_CONFIG = Config
+
 local connections = {}
-
 local originalSize = nil
-local originalAnchor = false
+local originalPosition = nil
+local wasEnabled = false
 local lastAttack = 0
-local ATTACK_DELAY = 0.2
 
--- 🔥 SILENT AIM: apunta al enemigo automáticamente
-local targetPart = nil
-
+--==================================================
+-- DETECCIÓN DE ROL
+--==================================================
 local function getRole(player)
     local char = player.Character
     local backpack = player:FindFirstChild("Backpack")
     if (char and char:FindFirstChild("Knife")) or (backpack and backpack:FindFirstChild("Knife")) then return "Murderer" end
-    if (char and char:FindFirstChild("Gun")) or (backpack and backpack:FindFirstChild("Gun")) then return "Sheriff" end
+    if (char and (char:FindFirstChild("Gun") or char:FindFirstChild("Revolver"))) or
+       (backpack and (backpack:FindFirstChild("Gun") or backpack:FindFirstChild("Revolver"))) then return "Sheriff" end
     return "Innocent"
 end
 
@@ -51,50 +52,117 @@ local function findTarget(role)
     return closest
 end
 
--- Hook de Silent Aim (solo para Sheriff)
-local mt = getrawmetatable(game)
-local oldIndex = mt.__index
-setreadonly(mt, false)
-
-mt.__index = newcclosure(function(self, key)
-    if Config.Enabled and targetPart and (self == Mouse or self == Camera) then
-        local myRole = getRole(LocalPlayer)
-        if myRole == "Sheriff" then
-            if key == "Hit" then return CFrame.new(targetPart.Position) end
-            if key == "Target" then return targetPart end
-            if key == "UnitRay" then
-                local origin = oldIndex(self, "Origin")
-                return Ray.new(origin, (targetPart.Position - origin).Unit * 1000)
-            end
-        end
-    end
-    return oldIndex(self, key)
-end)
-setreadonly(mt, true)
-
--- Auto-attack
-local function attack(toolName)
+local function findGun()
     local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    
-    local tool = char:FindFirstChild(toolName) 
-    if not tool then
-        local backpack = LocalPlayer:FindFirstChild("Backpack")
-        tool = backpack and backpack:FindFirstChild(toolName)
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    for _, name in ipairs({"Gun", "Revolver"}) do
+        local tool = char and char:FindFirstChild(name)
+        if tool then return tool end
+        tool = backpack and backpack:FindFirstChild(name)
+        if tool then return tool end
     end
-    
-    if tool then
-        if tool.Parent ~= char then
-            pcall(function() hum:EquipTool(tool) end)
-        end
-        pcall(function()
-            tool:Activate()
-        end)
-    end
+    return nil
 end
 
--- Hitbox expander (para Murderer)
+local function findKnife()
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    for _, name in ipairs({"Knife", "KnifeHandle"}) do
+        local tool = char and char:FindFirstChild(name)
+        if tool then return tool end
+        tool = backpack and backpack:FindFirstChild(name)
+        if tool then return tool end
+    end
+    return nil
+end
+
+--==================================================
+-- 🔥 SHERIFF: LANZAR AL MURDERER FUERA DEL MAPA
+--==================================================
+local function sheriffVoidLaunch(myRoot, murdererRoot)
+    local murdererChar = murdererRoot.Parent
+    local murdererHum = murdererChar and murdererChar:FindFirstChildOfClass("Humanoid")
+    if not murdererHum then return end
+    
+    -- 1. TP exactamente a la posición del Murderer
+    myRoot.Anchored = true
+    myRoot.CFrame = murdererRoot.CFrame
+    
+    -- 2. Ragdoll (pierde control)
+    pcall(function()
+        murdererHum:ChangeState(Enum.HumanoidStateType.Physics)
+    end)
+    
+    -- 3. Aplicar velocidad HORIZONTAL masiva (fuera del mapa)
+    -- Elegimos una dirección aleatoria en X/Z
+    local dir = Vector3.new(math.random(-10, 10), 0, math.random(-10, 10))
+    if dir.Magnitude < 1 then dir = Vector3.new(1, 0, 0) end
+    dir = dir.Unit
+    
+    local bvHorizontal = Instance.new("BodyVelocity")
+    bvHorizontal.Velocity = dir * 500 -- 500 studs/s horizontales
+    bvHorizontal.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bvHorizontal.Parent = murdererRoot
+    
+    -- 4. Aplicar velocidad VERTICAL (hacia arriba)
+    local bvVertical = Instance.new("BodyVelocity")
+    bvVertical.Velocity = Vector3.new(0, 200, 0)
+    bvVertical.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bvVertical.Parent = murdererRoot
+    
+    -- 5. Girar mientras vuela
+    local bav = Instance.new("BodyAngularVelocity")
+    bav.AngularVelocity = Vector3.new(30, 30, 30)
+    bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bav.Parent = murdererRoot
+    
+    -- 6. Limpiar después de 3 segundos (ya estará fuera del mapa)
+    task.delay(3, function()
+        if bvHorizontal then bvHorizontal:Destroy() end
+        if bvVertical then bvVertical:Destroy() end
+        if bav then bav:Destroy() end
+    end)
+    
+    -- 7. Disparar mientras vuela (por si acaso)
+    if Camera then
+        Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, murdererRoot.Position)
+    end
+    
+    task.spawn(function()
+        local gun = findGun()
+        if not gun then return end
+        
+        local myChar = LocalPlayer.Character
+        local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+        if not myHum then return end
+        
+        pcall(function() myHum:EquipTool(gun) end)
+        task.wait(0.1)
+        
+        -- 3 disparos mientras vuela
+        for i = 1, 3 do
+            if murdererHum and murdererHum.Health > 0 and murdererRoot and murdererRoot.Parent then
+                if Camera then
+                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, murdererRoot.Position)
+                end
+                pcall(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton1(Vector2.new(0, 0))
+                end)
+                pcall(function() gun:Activate() end)
+                task.wait(0.15)
+            else
+                break
+            end
+        end
+    end)
+    
+    print("[AutoWin] 🚀 Murderer lanzado al vacío!")
+end
+
+--==================================================
+-- MURDERER (sin cambios)
+--==================================================
 local expandedParts = {}
 local function expandHitbox(target)
     if not target or expandedParts[target] then return end
@@ -119,79 +187,130 @@ local function restoreHitboxes()
     expandedParts = {}
 end
 
-table.insert(connections, RunService.Heartbeat:Connect(function()
-    if not Config.Enabled then
-        targetPart = nil
-        restoreHitboxes()
-        local char = LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.Anchored = originalAnchor
-            if originalSize then hrp.Size = originalSize end
-        end
-        return
-    end
+local function murdererAction(myRoot, targetRoot)
+    myRoot.Anchored = false
+    myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
+    expandHitbox(targetRoot)
+    
+    local knife = findKnife()
+    if not knife then return end
+    
+    local myChar = LocalPlayer.Character
+    local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+    if not myHum then return end
+    
+    pcall(function() myHum:EquipTool(knife) end)
+    task.wait(0.1)
+    
+    pcall(function() knife:Activate() end)
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton1(Vector2.new(0, 0))
+    end)
+end
 
+--==================================================
+-- LOOP PRINCIPAL
+--==================================================
+table.insert(connections, RunService.Heartbeat:Connect(function(dt)
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local myHum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not myHum or myHum.Health <= 0 then return end
-
-    local myRole = getRole(LocalPlayer)
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+    
+    -- Detectar ON/OFF
+    if Config.Enabled and not wasEnabled then
+        wasEnabled = true
+        originalPosition = hrp.CFrame
+        originalSize = hrp.Size
+        
+        local role = getRole(LocalPlayer)
+        if role == "Innocent" then
+            hrp.Anchored = true
+            hrp.CFrame = CFrame.new(0, 500, 0)
+            hrp.Size = Vector3.new(0.1, 0.1, 0.1)
+        end
+    elseif not Config.Enabled and wasEnabled then
+        wasEnabled = false
+        hrp.Anchored = false
+        
+        if originalPosition then
+            hrp.CFrame = originalPosition
+            originalPosition = nil
+        end
+        if originalSize then
+            hrp.Size = originalSize
+            originalSize = nil
+        end
+        restoreHitboxes()
+    end
+    
+    if not Config.Enabled then return end
+    if hum.Health <= 0 then return end
+    
     local now = os.clock()
-
+    if now - lastAttack < 3 then return end
+    
+    local myRole = getRole(LocalPlayer)
+    
     if myRole == "Sheriff" then
-        -- 🚔 SHERIFF: Flotar + Silent Aim + Auto-Shoot
         local murdererRoot = findTarget("Murderer")
         if murdererRoot then
-            targetPart = murdererRoot
-            hrp.Anchored = true
-            hrp.CFrame = CFrame.lookAt(murdererRoot.Position + Vector3.new(0, 15, 0), murdererRoot.Position)
-            
-            if now - lastAttack >= 0.4 then
+            local mHum = murdererRoot.Parent and murdererRoot.Parent:FindFirstChildOfClass("Humanoid")
+            if mHum and mHum.Health > 0 then
                 lastAttack = now
-                attack("Gun")
+                sheriffVoidLaunch(hrp, murdererRoot)
             end
         end
+        
     elseif myRole == "Murderer" then
-        -- 🔪 MURDERER: TP + Hitbox Expander + Auto-M1
         local target = findTarget("Innocent") or findTarget("Sheriff")
         if target then
-            targetPart = target
-            hrp.Anchored = false
-            hrp.CFrame = target.CFrame * CFrame.new(0, 0, 3)
-            expandHitbox(target)
-            
-            if now - lastAttack >= ATTACK_DELAY then
-                lastAttack = now
-                attack("Knife")
-                pcall(function()
-                    local virtualUser = game:GetService("VirtualUser")
-                    virtualUser:CaptureController()
-                    virtualUser:ClickButton1(Vector2.new(0,0))
-                end)
-            end
+            lastAttack = now
+            murdererAction(hrp, target)
         end
+        
     else
-        -- 🛡️ INOCENTE: Volar al cielo + hitbox shrink
-        if not originalSize then originalSize = hrp.Size end
-        hrp.Anchored = true
-        hrp.CFrame = CFrame.new(0, 500, 0)
-        hrp.Size = Vector3.new(0.1, 0.1, 0.1)
+        if not hrp.Anchored then
+            hrp.Anchored = true
+            hrp.CFrame = CFrame.new(0, 500, 0)
+            hrp.Size = Vector3.new(0.1, 0.1, 0.1)
+        end
     end
 end))
 
+--==================================================
+-- LIMPIEZA
+--==================================================
 env.__MM2_AUTOWIN_CLEANUP = function()
     Config.Enabled = false
-    targetPart = nil
-    restoreHitboxes()
+    wasEnabled = false
+    
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
-        hrp.Anchored = originalAnchor
+        if originalPosition then hrp.CFrame = originalPosition end
         if originalSize then hrp.Size = originalSize end
+        hrp.Anchored = false
     end
+    
+    restoreHitboxes()
+    
+    -- Limpiar BodyVelocity/BodyAngularVelocity de todos los jugadores
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character then
+            local mRoot = p.Character:FindFirstChild("HumanoidRootPart")
+            if mRoot then
+                for _, obj in ipairs(mRoot:GetChildren()) do
+                    if obj:IsA("BodyVelocity") or obj:IsA("BodyAngularVelocity") then
+                        obj:Destroy()
+                    end
+                end
+            end
+        end
+    end
+    
     for _, c in ipairs(connections) do c:Disconnect() end
-    pcall(function() setreadonly(mt, false); mt.__index = oldIndex; setreadonly(mt, true) end)
-    env.MM2_AUTOWIN_CONFIG = nil; env.__MM2_AUTOWIN_CLEANUP = nil
+    env.MM2_AUTOWIN_CONFIG = nil
+    env.__MM2_AUTOWIN_CLEANUP = nil
 end
