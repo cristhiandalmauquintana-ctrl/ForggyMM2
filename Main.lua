@@ -1,9 +1,9 @@
---// FroggyHub MM2 | Sapphire Edition - v1.9 (Item ESP Update)
+--// FroggyHub MM2 | Sapphire Edition - v2.0 (UI Fix & Scroll)
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
-local HUB_VERSION = "v1.9"
+local HUB_VERSION = "v2.0"
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -24,6 +24,7 @@ local LocalPlayer = Players.LocalPlayer
 
 if env.__MM2_PANEL_CLEANUP then pcall(env.__MM2_PANEL_CLEANUP) end
 
+-- Funciones de descarga
 local function downloadModule(names)
     for _, name in ipairs(names) do
         local ok, res = pcall(function() return game:HttpGet(BASE_URL .. name .. "?v=" .. os.time(), true) end)
@@ -55,6 +56,9 @@ local function fetchLogo()
     return nil
 end
 
+-- 🔥 LOGO CARGA AQUÍ 🔥
+local logoAsset = fetchLogo()
+
 local Themes = {
     Zafiro = {
         Void = Color3.fromRGB(5, 7, 22), Bg = Color3.fromRGB(9, 12, 36), BgA = Color3.fromRGB(14, 18, 54),
@@ -78,7 +82,6 @@ local gui = make("ScreenGui", { Name = "FroggyHub_MM2", ResetOnSpawn = false, Ig
 
 local Config, GodConfig, MoveConfig, TPConfig, SAConfig, HitboxConfig
 local ready = false
-local logoAsset = nil
 
 local WIN_W, WIN_H = 580, 340
 local main = make("Frame", { Name = "Main", Size = UDim2.fromOffset(WIN_W, WIN_H), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.Bg, ClipsDescendants = true, Visible = false }, gui)
@@ -137,19 +140,32 @@ end
 
 local content = make("Frame", { Name = "Content", Position = UDim2.fromOffset(162, 68), Size = UDim2.fromOffset(404, SIDE_H), BackgroundTransparency = 1, ZIndex = 10 }, main)
 
+-- 🔥 SCROLLING FIX: Ahora las páginas son ScrollingFrames reales 🔥
 local function newPage()
-    return make("CanvasGroup", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, GroupTransparency = 0, Visible = false, ZIndex = 10 }, content)
+    local page = make("ScrollingFrame", { 
+        Size = UDim2.fromScale(1, 1), 
+        BackgroundTransparency = 1, 
+        BorderSizePixel = 0, 
+        ScrollBarThickness = 0,
+        CanvasSize = UDim2.new(),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        Visible = false, 
+        ZIndex = 10 
+    }, content)
+    -- Un padding para que no quede pegado al borde
+    make("UIPadding", { PaddingBottom = UDim.new(0, 10), PaddingRight = UDim.new(0, 4) }, page)
+    return page
 end
 
 local mainCards = {}
 local function createToggleCard(parent, name, desc, version, get, set, available, onChange)
-    local card = make("CanvasGroup", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, GroupTransparency = 0, ZIndex = 10 }, parent)
+    local card = make("Frame", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, Size = UDim2.new(1, 0, 0, 96), ZIndex = 10 }, parent)
     corner(card, 14)
     local cs = make("UIStroke", { Color = C.Sapphire, Transparency = 0.6, Thickness = 1 }, card)
     local btn = make("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 11 }, card)
     
     make("TextLabel", { Size = UDim2.new(1, -28, 0, 20), Position = UDim2.fromOffset(14, 12), BackgroundTransparency = 1, Text = name, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 }, btn)
-    
     local descText = available and (desc .. (version and ("  |  " .. version) or "")) or "módulo no cargado"
     make("TextLabel", { Size = UDim2.new(1, -28, 0, 28), Position = UDim2.fromOffset(14, 34), BackgroundTransparency = 1, Text = descText, TextColor3 = available and C.Dim or Color3.fromRGB(220, 90, 110), Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextWrapped = true, ZIndex = 12 }, btn)
     
@@ -183,7 +199,7 @@ local function createToggleCard(parent, name, desc, version, get, set, available
 end
 
 local function createSliderCard(parent, name, desc, version, minV, maxV, get, set, available)
-    local card = make("CanvasGroup", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, GroupTransparency = 0, ZIndex = 10 }, parent)
+    local card = make("Frame", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, Size = UDim2.new(1, 0, 0, 96), ZIndex = 10 }, parent)
     corner(card, 14)
     make("UIStroke", { Color = C.Sapphire, Transparency = 0.6, Thickness = 1 }, card)
     make("TextLabel", { Size = UDim2.new(1, -28, 0, 20), Position = UDim2.fromOffset(14, 12), BackgroundTransparency = 1, Text = name, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 }, card)
@@ -207,7 +223,7 @@ local function createSliderCard(parent, name, desc, version, minV, maxV, get, se
 end
 
 local function createSoonCard(parent, label)
-    local card = make("CanvasGroup", { BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.35, GroupTransparency = 0, ZIndex = 10 }, parent)
+    local card = make("Frame", { BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.35, Size = UDim2.new(1, 0, 0, 96), ZIndex = 10 }, parent)
     corner(card, 14)
     make("UIStroke", { Color = C.Violet, Transparency = 0.65, Thickness = 1 }, card)
     make("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.Row), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(38, 24, 92)), ColorSequenceKeypoint.new(1, C.Row) }), Rotation = 20 }, card)
@@ -219,7 +235,11 @@ local function createSoonCard(parent, label)
 end
 
 local pages = {}
-for i, tab in ipairs(TABS) do pages[i] = newPage() end
+for i, tab in ipairs(TABS) do 
+    pages[i] = newPage() 
+    -- Añadimos un layout vertical
+    make("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, pages[i])
+end
 
 local current = 1
 local function selectTab(i)
@@ -227,10 +247,10 @@ local function selectTab(i)
     local old = pages[current]; current = i
     tw(indicator, 0.4, { Position = UDim2.fromOffset(0, tabY(i)) })
     for k, b in ipairs(tabButtons) do tw(b, 0.25, { TextColor3 = (k == i) and C.Text or C.Dim }) end
-    tw(old, 0.15, { GroupTransparency = 1 })
-    task.delay(0.16, function() if pages[current] ~= old then old.Visible = false end end)
-    local new = pages[i]; new.Position = UDim2.fromOffset(14, 0); new.GroupTransparency = 1; new.Visible = true
-    tw(new, 0.35, { GroupTransparency = 0, Position = UDim2.fromOffset(0, 0) })
+    old.Visible = false
+    local new = pages[i]; new.Visible = true
+    new.Position = UDim2.fromOffset(0, 0)
+    tw(new, 0.35, { Position = UDim2.fromOffset(0, 0) })
 end
 for i, b in ipairs(tabButtons) do b.MouseButton1Click:Connect(function() selectTab(i) end) end
 
@@ -252,6 +272,7 @@ do
     end))
 end
 
+-- 🔥 BURBUJA CON LOGO CORREGIDA 🔥
 local BUBBLE_SIZE = 46
 local bubble = make("TextButton", { Size = UDim2.fromOffset(BUBBLE_SIZE, BUBBLE_SIZE), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = C.Row, Text = "", Visible = false, AutoButtonColor = false, ZIndex = 100 }, gui)
 corner(bubble, BUBBLE_SIZE / 2)
@@ -262,6 +283,25 @@ if logoAsset then
     make("ImageLabel", { Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Image = logoAsset, ScaleType = Enum.ScaleType.Fit }, bubble)
 else
     make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "F", TextColor3 = C.Cyan, Font = Enum.Font.GothamBlack, TextSize = 22 }, bubble)
+end
+
+-- 🔥 DEFINIMOS setShown ANTES 🔥
+local shown = true
+local function setShown(v)
+    if not ready or shown == v then return end
+    shown = v
+    if v then
+        bubble.Visible = false; main.Visible = true
+        tw(mainScale, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
+    else
+        local t = tw(mainScale, 0.3, { Scale = 0.01 }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+        t.Completed:Once(function() 
+            if not shown then 
+                main.Visible = false; bubble.Visible = true; 
+                bubble.Position = UDim2.fromOffset(main.AbsolutePosition.X, main.AbsolutePosition.Y)
+            end 
+        end)
+    end
 end
 
 local bDragging, bDragStart, bStartPos, bMoved
@@ -284,24 +324,6 @@ track(UserInputService.InputChanged:Connect(function(input)
         if bMoved then bubble.Position = UDim2.fromOffset(bStartPos.X + d.X, bStartPos.Y + d.Y) end
     end
 end))
-
-local shown = true
-local function setShown(v)
-    if not ready or shown == v then return end
-    shown = v
-    if v then
-        bubble.Visible = false; main.Visible = true
-        tw(mainScale, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
-    else
-        local t = tw(mainScale, 0.3, { Scale = 0.01 }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-        t.Completed:Once(function() 
-            if not shown then 
-                main.Visible = false; bubble.Visible = true; 
-                bubble.Position = UDim2.fromOffset(main.AbsolutePosition.X, main.AbsolutePosition.Y)
-            end 
-        end)
-    end
-end
 
 hideBtn.MouseButton1Click:Connect(function() setShown(false) end)
 track(UserInputService.InputBegan:Connect(function(input, gpe) if not gpe and input.KeyCode == Enum.KeyCode.RightShift then setShown(not shown) end end))
@@ -331,13 +353,10 @@ task.spawn(function()
     SAConfig = loadModule(SA_FILES, "MM2_SA_CONFIG")
     HitboxConfig = loadModule(HITBOX_FILES, "MM2_HITBOX_CONFIG")
 
-    for _, p in ipairs(content:GetChildren()) do p:Destroy() end
-    table.clear(mainCards)
-
-    pages[1] = newPage(); make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[1])
+    -- 1. PRINCIPAL
     createSoonCard(pages[1], "Kill All"); createSoonCard(pages[1], "Auto-Win"); createSoonCard(pages[1], "Coin Farm")
 
-    pages[2] = newPage(); make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[2])
+    -- 2. COMBATE
     createToggleCard(pages[2], "Silent Aim", "Auto-apunta al rol enemigo.", SAConfig and SAConfig.Version, function() return SAConfig and SAConfig.Enabled end, function(v) SAConfig.Enabled = v end, SAConfig ~= nil)
     if SAConfig then
         createToggleCard(pages[2], "Mostrar FOV", "Muestra el rango.", nil, function() return SAConfig.ShowFOV end, function(v) SAConfig.ShowFOV = v end, true)
@@ -345,6 +364,7 @@ task.spawn(function()
     else
         createSoonCard(pages[2], "Mostrar FOV"); createSoonCard(pages[2], "Radio FOV")
     end
+    
     createToggleCard(pages[2], "Hitbox Expander", "Agranda al enemigo.", HitboxConfig and HitboxConfig.Version, function() return HitboxConfig and HitboxConfig.Enabled end, function(v) HitboxConfig.Enabled = v end, HitboxConfig ~= nil)
     if HitboxConfig then
         createSliderCard(pages[2], "Tamaño Hitbox", "Evita crasheos.", nil, 2, 20, function() return HitboxConfig.Size end, function(v) HitboxConfig.Size = v end, true)
@@ -354,23 +374,24 @@ task.spawn(function()
         createSoonCard(pages[2], "Tamaño Hitbox"); createSoonCard(pages[2], "Expandir HRP"); createSoonCard(pages[2], "Expandir Cabeza")
     end
 
-    pages[3] = newPage(); make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[3])
+    -- 3. VISUAL
     createToggleCard(pages[3], "ESP General", "Activa el ESP.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
     createToggleCard(pages[3], "Cajas 2D", "Cajas en el enemigo.", Config and Config.Version, function() return Config and Config.Boxes end, function(v) Config.Boxes = v end, Config ~= nil)
     createToggleCard(pages[3], "Nombres y Roles", "Muestra Asesino/Sheriff.", Config and Config.Version, function() return Config and Config.Names end, function(v) Config.Names = v end, Config ~= nil)
     createToggleCard(pages[3], "ESP Armas", "Muestra armas en el suelo.", Config and Config.Version, function() return Config and Config.ShowWeapons end, function(v) Config.ShowWeapons = v end, Config ~= nil)
     createToggleCard(pages[3], "ESP Monedas", "Muestra monedas en el suelo.", Config and Config.Version, function() return Config and Config.ShowCoins end, function(v) Config.ShowCoins = v end, Config ~= nil)
 
-    pages[4] = newPage(); make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[4])
+    -- 4. JUGADOR
     createToggleCard(pages[4], "God Mode", "Inmortalidad.", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
     createToggleCard(pages[4], "Velocidad", "Aumenta la velocidad.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, MoveConfig ~= nil)
     createToggleCard(pages[4], "Salto Alto", "Aumenta el salto.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, MoveConfig ~= nil)
 
-    pages[5] = newPage(); make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[5])
+    -- 5. TELEPORT
     createToggleCard(pages[5], "TP a Jugador", "Va al jugador más cercano.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, TPConfig ~= nil)
     createToggleCard(pages[5], "TP a Moneda", "Busca monedas y teletransporta.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, TPConfig ~= nil)
 
-    pages[6] = newPage(); make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "Selector de temas\n(Próximamente)", TextColor3 = C.Dim, Font = Enum.Font.GothamBold, TextSize = 16 }, pages[6])
+    -- 6. AJUSTES
+    make("TextLabel", { Size = UDim2.new(1, 0, 0, 100), BackgroundTransparency = 1, Text = "Selector de temas\n(Próximamente)", TextColor3 = C.Dim, Font = Enum.Font.GothamBold, TextSize = 16 }, pages[6])
 
     pages[1].Visible = true
     ready = true
