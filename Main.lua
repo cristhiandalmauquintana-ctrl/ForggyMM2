@@ -1,9 +1,9 @@
---// FroggyHub MM2 | Sapphire Edition - v2.0 (UI Fix & Scroll)
+--// FroggyHub MM2 | Sapphire Edition - v2.1 (Multi-Touch Fix)
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
-local HUB_VERSION = "v2.0"
+local HUB_VERSION = "v2.1"
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -74,6 +74,9 @@ local function gradient(obj, c1, c2, rot) return make("UIGradient", { Color = Co
 
 local conns = {}
 local function track(c) conns[#conns + 1] = c return c end
+
+-- 🔥 VARIABLE GLOBAL PARA CONTROLAR EL DEDO ACTIVO 🔥
+local activeTouch = nil
 
 local parentGui = (gethui and gethui()) or game:GetService("CoreGui")
 local gui = make("ScreenGui", { Name = "FroggyHub_MM2", ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, parentGui)
@@ -245,24 +248,35 @@ local function selectTab(i)
 end
 for i, b in ipairs(tabButtons) do b.MouseButton1Click:Connect(function() selectTab(i) end) end
 
-do
-    local dragging, dragStart, startPos
-    track(header.InputBegan:Connect(function(input)
+-- 🔥 ARRASTRE BLINDADO (1 SOLO DEDO) 🔥
+local function makeDraggable(handle, getPos, setPos, onTap)
+    local dragging, dragStart, startPos, moved
+    track(handle.InputBegan:Connect(function(input)
+        if activeTouch then return end -- Si ya hay un dedo, ignorar
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = main.Position
+            activeTouch = input
+            dragging = true; dragStart = input.Position; startPos = getPos(); moved = false
+            local conn; conn = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    activeTouch = nil -- Liberar el dedo
+                    if not moved and onTap then onTap() end
+                    conn:Disconnect()
+                end
+            end)
         end
     end))
     track(UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local d = input.Position - dragStart
-            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-        end
-    end))
-    track(UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+        if not dragging or activeTouch ~= input then return end -- Solo el dedo activo cuenta
+        local d = input.Position - dragStart
+        if d.Magnitude > 5 then moved = true end
+        if moved then setPos(startPos.X + d.X, startPos.Y + d.Y) end
     end))
 end
 
+makeDraggable(header, function() return Vector2.new(main.AbsolutePosition.X, main.AbsolutePosition.Y) end, function(x, y) main.Position = UDim2.fromOffset(x, y) end)
+
+-- 🔥 BURBUJA BLINDADA 🔥
 local BUBBLE_SIZE = 46
 local bubble = make("TextButton", { Size = UDim2.fromOffset(BUBBLE_SIZE, BUBBLE_SIZE), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = C.Row, Text = "", Visible = false, AutoButtonColor = false, ZIndex = 100 }, gui)
 corner(bubble, BUBBLE_SIZE / 2)
@@ -293,26 +307,7 @@ local function setShown(v)
     end
 end
 
-local bDragging, bDragStart, bStartPos, bMoved
-track(bubble.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        bDragging = true; bDragStart = input.Position; bStartPos = Vector2.new(bubble.AbsolutePosition.X, bubble.AbsolutePosition.Y); bMoved = false
-        local conn; conn = input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                bDragging = false
-                if not bMoved then setShown(true) end
-                conn:Disconnect()
-            end
-        end)
-    end
-end))
-track(UserInputService.InputChanged:Connect(function(input)
-    if bDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local d = input.Position - bDragStart
-        if d.Magnitude > 5 then bMoved = true end
-        if bMoved then bubble.Position = UDim2.fromOffset(bStartPos.X + d.X, bStartPos.Y + d.Y) end
-    end
-end))
+makeDraggable(bubble, function() return Vector2.new(bubble.AbsolutePosition.X, bubble.AbsolutePosition.Y) end, function(x, y) bubble.Position = UDim2.fromOffset(x, y) end, function() setShown(true) end)
 
 hideBtn.MouseButton1Click:Connect(function() setShown(false) end)
 track(UserInputService.InputBegan:Connect(function(input, gpe) if not gpe and input.KeyCode == Enum.KeyCode.RightShift then setShown(not shown) end end))
