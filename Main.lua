@@ -1,10 +1,10 @@
---// FroggyHub MM2 | Sapphire Edition - v1.1 (Reorganizado)
+--// FroggyHub MM2 | Sapphire Edition - v1.2 (Bubble Fix)
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
 
-local HUB_VERSION = "v1.1" -- 🔥 Versión del Hub
+local HUB_VERSION = "v1.2" -- 🔥 Versión del Hub
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -37,7 +37,7 @@ local function loadModule(names, configKey)
     local chunk = loadstring(src)
     if not chunk then return nil end
     local ok, runErr = pcall(chunk)
-    if not ok then warn("Error cargando modulo " .. configKey .. ": " .. tostring(runErr)) return nil end
+    if not ok then warn("Error cargando modulo: " .. tostring(runErr)) return nil end
     return env[configKey]
 end
 
@@ -197,7 +197,7 @@ local function selectTab(i)
 end
 for i, b in ipairs(tabButtons) do b.MouseButton1Click:Connect(function() selectTab(i) end) end
 
--- Arrastrar ventana
+-- Arrastrar ventana principal
 do
     local dragging, dragStart, startPos
     track(header.InputBegan:Connect(function(input)
@@ -216,13 +216,63 @@ do
     end))
 end
 
+-- 🔥 SISTEMA DE BURBUJA (BOTÓN FLOTANTE PARA VOLVER A ABRIR) 🔥
+local BUBBLE_SIZE = 46
+local bubble = make("TextButton", {
+    Size = UDim2.fromOffset(BUBBLE_SIZE, BUBBLE_SIZE),
+    Position = UDim2.fromScale(0.5, 0.5),
+    BackgroundColor3 = C.Row, Text = "F", TextColor3 = C.Cyan, Font = Enum.Font.GothamBlack, TextSize = 22,
+    Visible = false, AutoButtonColor = false, ZIndex = 100
+}, gui)
+corner(bubble, BUBBLE_SIZE / 2)
+local bubbleStroke = make("UIStroke", { Thickness = 2, Color = C.Sapphire }, bubble)
+gradient(bubble, C.BgA, C.BgB, 45)
+
+local bDragging, bDragStart, bStartPos, bMoved
+track(bubble.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        bDragging = true; bDragStart = input.Position; bStartPos = bubble.Position; bMoved = false
+        local conn
+        conn = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                bDragging = false
+                if not bMoved then setShown(true) end -- Si no se movió, abrir panel
+                conn:Disconnect()
+            end
+        end)
+    end
+end))
+track(UserInputService.InputChanged:Connect(function(input)
+    if bDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local d = input.Position - bDragStart
+        if d.Magnitude > 5 then bMoved = true end
+        if bMoved then
+            bubble.Position = UDim2.new(bStartPos.X.Scale, bStartPos.X.Offset + d.X, bStartPos.Y.Scale, bStartPos.Y.Offset + d.Y)
+        end
+    end
+end))
+
 local shown = true
 local function setShown(v)
-    if not ready then return end
+    if not ready or shown == v then return end
     shown = v
-    if v then main.Visible = true; tw(mainScale, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
-    else local t = tw(mainScale, 0.3, { Scale = 0.01 }, Enum.EasingStyle.Quint, Enum.EasingDirection.In); t.Completed:Once(function() if not shown then main.Visible = false end end) end
+    if v then
+        bubble.Visible = false
+        main.Visible = true
+        tw(mainScale, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
+    else
+        local t = tw(mainScale, 0.3, { Scale = 0.01 }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+        t.Completed:Once(function() 
+            if not shown then 
+                main.Visible = false 
+                bubble.Visible = true
+                -- Colocar la burbuja donde estaba el panel
+                bubble.Position = UDim2.new(0, main.AbsolutePosition.X, 0, main.AbsolutePosition.Y)
+            end
+        end)
+    end
 end
+
 hideBtn.MouseButton1Click:Connect(function() setShown(false) end)
 track(UserInputService.InputBegan:Connect(function(input, gpe) if not gpe and input.KeyCode == Enum.KeyCode.RightShift then setShown(not shown) end end))
 
@@ -243,7 +293,6 @@ task.spawn(function()
     tw(mainScale, 0.7, { Scale = 1 }, Enum.EasingStyle.Back)
     tw(side, 0.5, { GroupTransparency = 0 })
 
-    -- Carga de módulos
     Config = loadModule(ESP_FILES, "MM2_ESP_CONFIG")
     GodConfig = loadModule(GODMODE_FILES, "MM2_GOD_CONFIG")
     MoveConfig = loadModule(MOVE_FILES, "MM2_MOVE_CONFIG")
@@ -252,7 +301,7 @@ task.spawn(function()
     for _, p in ipairs(content:GetChildren()) do p:Destroy() end
     table.clear(mainCards)
 
-    -- 1. PÁGINA PRINCIPAL (Kill All, Auto-Win)
+    -- 1. PÁGINA PRINCIPAL
     pages[1] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[1])
     createSoonCard(pages[1], "Kill All")
