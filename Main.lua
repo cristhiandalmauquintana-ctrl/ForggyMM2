@@ -24,7 +24,6 @@ local LocalPlayer = Players.LocalPlayer
 
 if env.__MM2_PANEL_CLEANUP then pcall(env.__MM2_PANEL_CLEANUP) end
 
--- Funciones de descarga
 local function downloadModule(names)
     for _, name in ipairs(names) do
         local ok, res = pcall(function() return game:HttpGet(BASE_URL .. name .. "?v=" .. os.time(), true) end)
@@ -56,7 +55,6 @@ local function fetchLogo()
     return nil
 end
 
--- 🔥 LOGO CARGA AQUÍ 🔥
 local logoAsset = fetchLogo()
 
 local Themes = {
@@ -140,7 +138,6 @@ end
 
 local content = make("Frame", { Name = "Content", Position = UDim2.fromOffset(162, 68), Size = UDim2.fromOffset(404, SIDE_H), BackgroundTransparency = 1, ZIndex = 10 }, main)
 
--- 🔥 SCROLLING FIX: Ahora las páginas son ScrollingFrames reales 🔥
 local function newPage()
     local page = make("ScrollingFrame", { 
         Size = UDim2.fromScale(1, 1), 
@@ -153,8 +150,8 @@ local function newPage()
         Visible = false, 
         ZIndex = 10 
     }, content)
-    -- Un padding para que no quede pegado al borde
     make("UIPadding", { PaddingBottom = UDim.new(0, 10), PaddingRight = UDim.new(0, 4) }, page)
+    make("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, page)
     return page
 end
 
@@ -235,11 +232,7 @@ local function createSoonCard(parent, label)
 end
 
 local pages = {}
-for i, tab in ipairs(TABS) do 
-    pages[i] = newPage() 
-    -- Añadimos un layout vertical
-    make("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, pages[i])
-end
+for i, tab in ipairs(TABS) do pages[i] = newPage() end
 
 local current = 1
 local function selectTab(i)
@@ -249,8 +242,6 @@ local function selectTab(i)
     for k, b in ipairs(tabButtons) do tw(b, 0.25, { TextColor3 = (k == i) and C.Text or C.Dim }) end
     old.Visible = false
     local new = pages[i]; new.Visible = true
-    new.Position = UDim2.fromOffset(0, 0)
-    tw(new, 0.35, { Position = UDim2.fromOffset(0, 0) })
 end
 for i, b in ipairs(tabButtons) do b.MouseButton1Click:Connect(function() selectTab(i) end) end
 
@@ -272,7 +263,6 @@ do
     end))
 end
 
--- 🔥 BURBUJA CON LOGO CORREGIDA 🔥
 local BUBBLE_SIZE = 46
 local bubble = make("TextButton", { Size = UDim2.fromOffset(BUBBLE_SIZE, BUBBLE_SIZE), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = C.Row, Text = "", Visible = false, AutoButtonColor = false, ZIndex = 100 }, gui)
 corner(bubble, BUBBLE_SIZE / 2)
@@ -285,7 +275,6 @@ else
     make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "F", TextColor3 = C.Cyan, Font = Enum.Font.GothamBlack, TextSize = 22 }, bubble)
 end
 
--- 🔥 DEFINIMOS setShown ANTES 🔥
 local shown = true
 local function setShown(v)
     if not ready or shown == v then return end
@@ -353,10 +342,8 @@ task.spawn(function()
     SAConfig = loadModule(SA_FILES, "MM2_SA_CONFIG")
     HitboxConfig = loadModule(HITBOX_FILES, "MM2_HITBOX_CONFIG")
 
-    -- 1. PRINCIPAL
     createSoonCard(pages[1], "Kill All"); createSoonCard(pages[1], "Auto-Win"); createSoonCard(pages[1], "Coin Farm")
 
-    -- 2. COMBATE
     createToggleCard(pages[2], "Silent Aim", "Auto-apunta al rol enemigo.", SAConfig and SAConfig.Version, function() return SAConfig and SAConfig.Enabled end, function(v) SAConfig.Enabled = v end, SAConfig ~= nil)
     if SAConfig then
         createToggleCard(pages[2], "Mostrar FOV", "Muestra el rango.", nil, function() return SAConfig.ShowFOV end, function(v) SAConfig.ShowFOV = v end, true)
@@ -364,7 +351,6 @@ task.spawn(function()
     else
         createSoonCard(pages[2], "Mostrar FOV"); createSoonCard(pages[2], "Radio FOV")
     end
-    
     createToggleCard(pages[2], "Hitbox Expander", "Agranda al enemigo.", HitboxConfig and HitboxConfig.Version, function() return HitboxConfig and HitboxConfig.Enabled end, function(v) HitboxConfig.Enabled = v end, HitboxConfig ~= nil)
     if HitboxConfig then
         createSliderCard(pages[2], "Tamaño Hitbox", "Evita crasheos.", nil, 2, 20, function() return HitboxConfig.Size end, function(v) HitboxConfig.Size = v end, true)
@@ -374,23 +360,19 @@ task.spawn(function()
         createSoonCard(pages[2], "Tamaño Hitbox"); createSoonCard(pages[2], "Expandir HRP"); createSoonCard(pages[2], "Expandir Cabeza")
     end
 
-    -- 3. VISUAL
     createToggleCard(pages[3], "ESP General", "Activa el ESP.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
     createToggleCard(pages[3], "Cajas 2D", "Cajas en el enemigo.", Config and Config.Version, function() return Config and Config.Boxes end, function(v) Config.Boxes = v end, Config ~= nil)
     createToggleCard(pages[3], "Nombres y Roles", "Muestra Asesino/Sheriff.", Config and Config.Version, function() return Config and Config.Names end, function(v) Config.Names = v end, Config ~= nil)
     createToggleCard(pages[3], "ESP Armas", "Muestra armas en el suelo.", Config and Config.Version, function() return Config and Config.ShowWeapons end, function(v) Config.ShowWeapons = v end, Config ~= nil)
     createToggleCard(pages[3], "ESP Monedas", "Muestra monedas en el suelo.", Config and Config.Version, function() return Config and Config.ShowCoins end, function(v) Config.ShowCoins = v end, Config ~= nil)
 
-    -- 4. JUGADOR
     createToggleCard(pages[4], "God Mode", "Inmortalidad.", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
     createToggleCard(pages[4], "Velocidad", "Aumenta la velocidad.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, MoveConfig ~= nil)
     createToggleCard(pages[4], "Salto Alto", "Aumenta el salto.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, MoveConfig ~= nil)
 
-    -- 5. TELEPORT
     createToggleCard(pages[5], "TP a Jugador", "Va al jugador más cercano.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, TPConfig ~= nil)
     createToggleCard(pages[5], "TP a Moneda", "Busca monedas y teletransporta.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, TPConfig ~= nil)
 
-    -- 6. AJUSTES
     make("TextLabel", { Size = UDim2.new(1, 0, 0, 100), BackgroundTransparency = 1, Text = "Selector de temas\n(Próximamente)", TextColor3 = C.Dim, Font = Enum.Font.GothamBold, TextSize = 16 }, pages[6])
 
     pages[1].Visible = true
