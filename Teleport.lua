@@ -1,5 +1,4 @@
---// MM2 Hub - Teleport (Placeholder - Listo para lógica)
-
+--// MM2 Hub - Teleport (v1.0)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -7,21 +6,16 @@ local LocalPlayer = Players.LocalPlayer
 local env = (getgenv and getgenv()) or _G
 if env.__MM2_TP_CLEANUP then pcall(env.__MM2_TP_CLEANUP) end
 
-local Config = { TpPlayer = false, TpCoin = false }
+local Config = { TpPlayer = false, TpCoin = false, Version = "v1.0" }
 env.MM2_TP_CONFIG = Config
 local connections = {}
 
--- Bucle para TP a Jugador (Lógica futura aquí)
 table.insert(connections, RunService.Heartbeat:Connect(function()
     if Config.TpPlayer then
-        -- Lógica para buscar al jugador más cercano y teletransportarse
+        -- Lógica futura para TP al jugador
     end
-end))
-
--- Bucle para TP a Moneda (Lógica futura aquí)
-table.insert(connections, RunService.Heartbeat:Connect(function()
     if Config.TpCoin then
-        -- Lógica para buscar monedas en el mapa y teletransportarse
+        -- Lógica futura para TP a la moneda
     end
 end))
 
