@@ -1,18 +1,21 @@
---// FroggyHub MM2 | Sapphire Edition - v2.1 (Multi-Touch Fix)
+--// FroggyHub MM2 | Sapphire Edition - v2.5 (True Final Edition)
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
-local HUB_VERSION = "v2.1"
+local HUB_VERSION = "v2.5"
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
+-- Listas de archivos
 local ESP_FILES = { "ESP.lua" }
 local GODMODE_FILES = { "GodMode.lua" }
 local MOVE_FILES = { "Movement.lua" }
 local TP_FILES = { "Teleport.lua" }
 local SA_FILES = { "SilentAim.lua" }
 local HITBOX_FILES = { "HitboxExpander.lua" }
+local DODGE_FILES = { "AutoDodge.lua" }
+local HSHRINK_FILES = { "HitboxShrinker.lua" }
 local LOGO_FILES = { "logo.png", "Logo.png" }
 
 local env = (getgenv and getgenv()) or _G
@@ -24,6 +27,7 @@ local LocalPlayer = Players.LocalPlayer
 
 if env.__MM2_PANEL_CLEANUP then pcall(env.__MM2_PANEL_CLEANUP) end
 
+-- Funciones de descarga
 local function downloadModule(names)
     for _, name in ipairs(names) do
         local ok, res = pcall(function() return game:HttpGet(BASE_URL .. name .. "?v=" .. os.time(), true) end)
@@ -57,6 +61,7 @@ end
 
 local logoAsset = fetchLogo()
 
+-- TEMAS
 local Themes = {
     Zafiro = {
         Void = Color3.fromRGB(5, 7, 22), Bg = Color3.fromRGB(9, 12, 36), BgA = Color3.fromRGB(14, 18, 54),
@@ -75,13 +80,13 @@ local function gradient(obj, c1, c2, rot) return make("UIGradient", { Color = Co
 local conns = {}
 local function track(c) conns[#conns + 1] = c return c end
 
--- 🔥 VARIABLE GLOBAL PARA CONTROLAR EL DEDO ACTIVO 🔥
+-- 🔥 MULTI-TOUCH FIX
 local activeTouch = nil
 
 local parentGui = (gethui and gethui()) or game:GetService("CoreGui")
 local gui = make("ScreenGui", { Name = "FroggyHub_MM2", ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, parentGui)
 
-local Config, GodConfig, MoveConfig, TPConfig, SAConfig, HitboxConfig
+local Config, GodConfig, MoveConfig, TPConfig, SAConfig, HitboxConfig, DodgeConfig, HShrinkConfig
 local ready = false
 
 local WIN_W, WIN_H = 580, 340
@@ -159,7 +164,7 @@ local function newPage()
 end
 
 local mainCards = {}
-local function createToggleCard(parent, name, desc, version, get, set, available, onChange)
+local function createToggleCard(parent, name, desc, version, get, set, available)
     local card = make("Frame", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, Size = UDim2.new(1, 0, 0, 96), ZIndex = 10 }, parent)
     corner(card, 14)
     local cs = make("UIStroke", { Color = C.Sapphire, Transparency = 0.6, Thickness = 1 }, card)
@@ -185,7 +190,6 @@ local function createToggleCard(parent, name, desc, version, get, set, available
         tw(sw, 0.25, { BackgroundColor3 = on and Color3.new(1, 1, 1) or C.Off })
         tw(knob, 0.3, { Position = on and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3), BackgroundColor3 = on and Color3.new(1, 1, 1) or C.Dim }, Enum.EasingStyle.Back)
         tw(cs, 0.3, { Color = on and C.Cyan or C.Sapphire, Transparency = on and 0.1 or 0.6 })
-        if onChange then onChange(on) end
     end
 
     if available then
@@ -248,18 +252,17 @@ local function selectTab(i)
 end
 for i, b in ipairs(tabButtons) do b.MouseButton1Click:Connect(function() selectTab(i) end) end
 
--- 🔥 ARRASTRE BLINDADO (1 SOLO DEDO) 🔥
 local function makeDraggable(handle, getPos, setPos, onTap)
     local dragging, dragStart, startPos, moved
     track(handle.InputBegan:Connect(function(input)
-        if activeTouch then return end -- Si ya hay un dedo, ignorar
+        if activeTouch then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             activeTouch = input
             dragging = true; dragStart = input.Position; startPos = getPos(); moved = false
             local conn; conn = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
-                    activeTouch = nil -- Liberar el dedo
+                    activeTouch = nil
                     if not moved and onTap then onTap() end
                     conn:Disconnect()
                 end
@@ -267,7 +270,7 @@ local function makeDraggable(handle, getPos, setPos, onTap)
         end
     end))
     track(UserInputService.InputChanged:Connect(function(input)
-        if not dragging or activeTouch ~= input then return end -- Solo el dedo activo cuenta
+        if not dragging or activeTouch ~= input then return end
         local d = input.Position - dragStart
         if d.Magnitude > 5 then moved = true end
         if moved then setPos(startPos.X + d.X, startPos.Y + d.Y) end
@@ -276,7 +279,6 @@ end
 
 makeDraggable(header, function() return Vector2.new(main.AbsolutePosition.X, main.AbsolutePosition.Y) end, function(x, y) main.Position = UDim2.fromOffset(x, y) end)
 
--- 🔥 BURBUJA BLINDADA 🔥
 local BUBBLE_SIZE = 46
 local bubble = make("TextButton", { Size = UDim2.fromOffset(BUBBLE_SIZE, BUBBLE_SIZE), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = C.Row, Text = "", Visible = false, AutoButtonColor = false, ZIndex = 100 }, gui)
 corner(bubble, BUBBLE_SIZE / 2)
@@ -320,6 +322,8 @@ env.__MM2_PANEL_CLEANUP = function()
     if env.__MM2_TP_CLEANUP then pcall(env.__MM2_TP_CLEANUP) end
     if env.__MM2_SA_CLEANUP then pcall(env.__MM2_SA_CLEANUP) end
     if env.__MM2_HITBOX_CLEANUP then pcall(env.__MM2_HITBOX_CLEANUP) end
+    if env.__MM2_DODGE_CLEANUP then pcall(env.__MM2_DODGE_CLEANUP) end
+    if env.__MM2_HSHRINK_CLEANUP then pcall(env.__MM2_HSHRINK_CLEANUP) end
     gui:Destroy(); env.__MM2_PANEL_CLEANUP = nil
 end
 closeBtn.MouseButton1Click:Connect(function() env.__MM2_PANEL_CLEANUP() end)
@@ -330,15 +334,20 @@ task.spawn(function()
     tw(mainScale, 0.7, { Scale = 1 }, Enum.EasingStyle.Back)
     tw(side, 0.5, { GroupTransparency = 0 })
 
+    -- Carga de módulos
     Config = loadModule(ESP_FILES, "MM2_ESP_CONFIG")
     GodConfig = loadModule(GODMODE_FILES, "MM2_GOD_CONFIG")
     MoveConfig = loadModule(MOVE_FILES, "MM2_MOVE_CONFIG")
     TPConfig = loadModule(TP_FILES, "MM2_TP_CONFIG")
     SAConfig = loadModule(SA_FILES, "MM2_SA_CONFIG")
     HitboxConfig = loadModule(HITBOX_FILES, "MM2_HITBOX_CONFIG")
+    DodgeConfig = loadModule(DODGE_FILES, "MM2_DODGE_CONFIG")
+    HShrinkConfig = loadModule(HSHRINK_FILES, "MM2_HSHRINK_CONFIG")
 
+    -- 1. PRINCIPAL
     createSoonCard(pages[1], "Kill All"); createSoonCard(pages[1], "Auto-Win"); createSoonCard(pages[1], "Coin Farm")
 
+    -- 2. COMBATE
     createToggleCard(pages[2], "Silent Aim", "Auto-apunta al rol enemigo.", SAConfig and SAConfig.Version, function() return SAConfig and SAConfig.Enabled end, function(v) SAConfig.Enabled = v end, SAConfig ~= nil)
     if SAConfig then
         createToggleCard(pages[2], "Mostrar FOV", "Muestra el rango.", nil, function() return SAConfig.ShowFOV end, function(v) SAConfig.ShowFOV = v end, true)
@@ -349,25 +358,43 @@ task.spawn(function()
     createToggleCard(pages[2], "Hitbox Expander", "Agranda al enemigo.", HitboxConfig and HitboxConfig.Version, function() return HitboxConfig and HitboxConfig.Enabled end, function(v) HitboxConfig.Enabled = v end, HitboxConfig ~= nil)
     if HitboxConfig then
         createSliderCard(pages[2], "Tamaño Hitbox", "Evita crasheos.", nil, 2, 20, function() return HitboxConfig.Size end, function(v) HitboxConfig.Size = v end, true)
-        createToggleCard(pages[2], "Expandir HRP", "Centro del cuerpo.", nil, function() return HitboxConfig.TargetPart == "HumanoidRootPart" end, function(v) if v then HitboxConfig.TargetPart = "HumanoidRootPart" else HitboxConfig.TargetPart = "" end; for _, r in ipairs(refreshers) do pcall(r) end end, true)
-        createToggleCard(pages[2], "Expandir Cabeza", "Cabeza del enemigo.", nil, function() return HitboxConfig.TargetPart == "Head" end, function(v) if v then HitboxConfig.TargetPart = "Head" else HitboxConfig.TargetPart = "" end; for _, r in ipairs(refreshers) do pcall(r) end end, true)
+        createToggleCard(pages[2], "Expandir HRP", "Centro del cuerpo.", nil, function() return HitboxConfig.TargetPart == "HumanoidRootPart" end, function(v) if v then HitboxConfig.TargetPart = "HumanoidRootPart" else HitboxConfig.TargetPart = "" end end, true)
+        createToggleCard(pages[2], "Expandir Cabeza", "Cabeza del enemigo.", nil, function() return HitboxConfig.TargetPart == "Head" end, function(v) if v then HitboxConfig.TargetPart = "Head" else HitboxConfig.TargetPart = "" end end, true)
     else
         createSoonCard(pages[2], "Tamaño Hitbox"); createSoonCard(pages[2], "Expandir HRP"); createSoonCard(pages[2], "Expandir Cabeza")
     end
 
+    -- 3. VISUAL
     createToggleCard(pages[3], "ESP General", "Activa el ESP.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
     createToggleCard(pages[3], "Cajas 2D", "Cajas en el enemigo.", Config and Config.Version, function() return Config and Config.Boxes end, function(v) Config.Boxes = v end, Config ~= nil)
     createToggleCard(pages[3], "Nombres y Roles", "Muestra Asesino/Sheriff.", Config and Config.Version, function() return Config and Config.Names end, function(v) Config.Names = v end, Config ~= nil)
     createToggleCard(pages[3], "ESP Armas", "Muestra armas en el suelo.", Config and Config.Version, function() return Config and Config.ShowWeapons end, function(v) Config.ShowWeapons = v end, Config ~= nil)
     createToggleCard(pages[3], "ESP Monedas", "Muestra monedas en el suelo.", Config and Config.Version, function() return Config and Config.ShowCoins end, function(v) Config.ShowCoins = v end, Config ~= nil)
 
-    createToggleCard(pages[4], "God Mode", "Inmortalidad.", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
+    -- 4. JUGADOR (AUTO-DODGE, HITBOX SHRINKER, GODMODE PLACEBO, MOVIMIENTO)
+    if DodgeConfig then
+        createToggleCard(pages[4], "Auto-Dodge", "Salta lejos cuando el asesino se acerca.", DodgeConfig.Version, function() return DodgeConfig.Enabled end, function(v) DodgeConfig.Enabled = v end, true)
+        createSliderCard(pages[4], "Rango de Reacción", "Distancia de detección.", nil, 10, 50, function() return DodgeConfig.DodgeRange end, function(v) DodgeConfig.DodgeRange = v end, true)
+        createSliderCard(pages[4], "Fuerza de Salto", "Studs de escape.", nil, 10, 60, function() return DodgeConfig.DodgeForce end, function(v) DodgeConfig.DodgeForce = v end, true)
+    else
+        createSoonCard(pages[4], "Auto-Dodge")
+    end
+
+    if HShrinkConfig then
+        createToggleCard(pages[4], "Hitbox Shrinker", "Encoge tu hitbox al mínimo.", HShrinkConfig.Version, function() return HShrinkConfig.Enabled end, function(v) HShrinkConfig.Enabled = v end, true)
+    else
+        createSoonCard(pages[4], "Hitbox Shrinker")
+    end
+
+    createToggleCard(pages[4], "GodMode (Placebo)", "Bloquea daño local (No 100% fiable).", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
     createToggleCard(pages[4], "Velocidad", "Aumenta la velocidad.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, MoveConfig ~= nil)
     createToggleCard(pages[4], "Salto Alto", "Aumenta el salto.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, MoveConfig ~= nil)
 
+    -- 5. TELEPORT
     createToggleCard(pages[5], "TP a Jugador", "Va al jugador más cercano.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, TPConfig ~= nil)
     createToggleCard(pages[5], "TP a Moneda", "Busca monedas y teletransporta.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, TPConfig ~= nil)
 
+    -- 6. AJUSTES
     make("TextLabel", { Size = UDim2.new(1, 0, 0, 100), BackgroundTransparency = 1, Text = "Selector de temas\n(Próximamente)", TextColor3 = C.Dim, Font = Enum.Font.GothamBold, TextSize = 16 }, pages[6])
 
     pages[1].Visible = true
