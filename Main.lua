@@ -1,4 +1,4 @@
---// FroggyHub MM2 | Sapphire Edition
+--// FroggyHub MM2 | Sapphire Edition - FIXED
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
@@ -126,7 +126,8 @@ end
 
 local mainCards = {}
 local function createToggleCard(parent, name, desc, get, set, available)
-    local card = make("CanvasGroup", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, GroupTransparency = 1, ZIndex = 10 }, parent)
+    -- AQUÍ ESTÁ EL FIX: GroupTransparency = 0 en lugar de 1
+    local card = make("CanvasGroup", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, GroupTransparency = 0, ZIndex = 10 }, parent)
     corner(card, 14)
     local cs = make("UIStroke", { Color = C.Sapphire, Transparency = 0.6, Thickness = 1 }, card)
     local btn = make("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 11 }, card)
@@ -163,7 +164,8 @@ local function createToggleCard(parent, name, desc, get, set, available)
 end
 
 local function createSoonCard(parent, label)
-    local card = make("CanvasGroup", { BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.35, GroupTransparency = 1, ZIndex = 10 }, parent)
+    -- AQUÍ ESTÁ EL FIX: GroupTransparency = 0
+    local card = make("CanvasGroup", { BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.35, GroupTransparency = 0, ZIndex = 10 }, parent)
     corner(card, 14)
     make("UIStroke", { Color = C.Violet, Transparency = 0.65, Thickness = 1 }, card)
     make("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.Row), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(38, 24, 92)), ColorSequenceKeypoint.new(1, C.Row) }), Rotation = 20 }, card)
