@@ -1,8 +1,10 @@
---// FroggyHub MM2 | Sapphire Edition - FIXED
+--// FroggyHub MM2 | Sapphire Edition - v1.0 (Version System)
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
+
+local HUB_VERSION = "v1.0" -- 🔥 VERSIÓN DEL HUB
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -85,6 +87,13 @@ local pill = make("Frame", { LayoutOrder = 2, Size = UDim2.fromOffset(46, 20), B
 corner(pill, 10); gradient(pill, C.Sapphire, C.Violet, 0)
 make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "MM2", TextColor3 = Color3.new(1, 1, 1), Font = Enum.Font.GothamBlack, TextSize = 12, ZIndex = 12 }, pill)
 
+-- 🔥 BADGE DE VERSIÓN DEL HUB 🔥
+local versionBadge = make("TextLabel", {
+    LayoutOrder = 3, Size = UDim2.fromOffset(36, 16), BackgroundColor3 = C.Cyan, BackgroundTransparency = 0.8,
+    Text = HUB_VERSION, TextColor3 = C.Cyan, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 11,
+}, brand)
+corner(versionBadge, 6)
+
 local function headerButton(text, xOff, color)
     local b = make("TextButton", { Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, xOff, 0, 13), BackgroundColor3 = C.Row, BackgroundTransparency = 0.2, Text = text, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 14, AutoButtonColor = false, ZIndex = 12 }, header)
     corner(b, 8)
@@ -125,15 +134,18 @@ local function newPage()
 end
 
 local mainCards = {}
-local function createToggleCard(parent, name, desc, get, set, available)
-    -- AQUÍ ESTÁ EL FIX: GroupTransparency = 0 en lugar de 1
+-- 🔥 AÑADIDO PARÁMETRO 'version' 🔥
+local function createToggleCard(parent, name, desc, version, get, set, available)
     local card = make("CanvasGroup", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, GroupTransparency = 0, ZIndex = 10 }, parent)
     corner(card, 14)
     local cs = make("UIStroke", { Color = C.Sapphire, Transparency = 0.6, Thickness = 1 }, card)
     local btn = make("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, ZIndex = 11 }, card)
     
     make("TextLabel", { Size = UDim2.new(1, -28, 0, 20), Position = UDim2.fromOffset(14, 12), BackgroundTransparency = 1, Text = name, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 }, btn)
-    make("TextLabel", { Size = UDim2.new(1, -28, 0, 28), Position = UDim2.fromOffset(14, 34), BackgroundTransparency = 1, Text = available and desc or "módulo no cargado", TextColor3 = available and C.Dim or Color3.fromRGB(220, 90, 110), Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextWrapped = true, ZIndex = 12 }, btn)
+    
+    -- Texto de descripción con la versión del módulo
+    local descText = available and (desc .. (version and ("  |  " .. version) or "")) or "módulo no cargado"
+    make("TextLabel", { Size = UDim2.new(1, -28, 0, 28), Position = UDim2.fromOffset(14, 34), BackgroundTransparency = 1, Text = descText, TextColor3 = available and C.Dim or Color3.fromRGB(220, 90, 110), Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextWrapped = true, ZIndex = 12 }, btn)
     
     local state = make("TextLabel", { Size = UDim2.fromOffset(60, 16), Position = UDim2.fromOffset(14, 70), BackgroundTransparency = 1, Text = "OFF", TextColor3 = C.Dim, Font = Enum.Font.GothamBold, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 }, btn)
     local sw = make("Frame", { Size = UDim2.fromOffset(46, 24), Position = UDim2.new(1, -60, 0, 66), BackgroundColor3 = C.Off, ZIndex = 12 }, btn)
@@ -164,7 +176,6 @@ local function createToggleCard(parent, name, desc, get, set, available)
 end
 
 local function createSoonCard(parent, label)
-    -- AQUÍ ESTÁ EL FIX: GroupTransparency = 0
     local card = make("CanvasGroup", { BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.35, GroupTransparency = 0, ZIndex = 10 }, parent)
     corner(card, 14)
     make("UIStroke", { Color = C.Violet, Transparency = 0.65, Thickness = 1 }, card)
@@ -249,30 +260,32 @@ task.spawn(function()
     -- 1. PÁGINA PRINCIPAL
     pages[1] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[1])
-    createToggleCard(pages[1], "God Mode", "Te vuelve inmortal contra cuchillos/balas.", function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
-    createToggleCard(pages[1], "ESP General", "Activa el ESP rápidamente.", function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
+    
+    -- 🔥 PASAMOS LA VERSIÓN DEL MÓDULO 🔥
+    createToggleCard(pages[1], "God Mode", "Inmortalidad total.", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
+    createToggleCard(pages[1], "ESP General", "Activa el ESP rápidamente.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
     createSoonCard(pages[1], "Kill All")
     createSoonCard(pages[1], "Auto-Win")
 
     -- 2. PÁGINA VISUAL (ESP)
     pages[2] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[2])
-    createToggleCard(pages[2], "Cajas 2D", "Dibuja cajas alrededor del enemigo.", function() return Config and Config.Boxes end, function(v) Config.Boxes = v end, Config ~= nil)
-    createToggleCard(pages[2], "Nombres y Roles", "Muestra quién es Asesino/Sheriff.", function() return Config and Config.Names end, function(v) Config.Names = v end, Config ~= nil)
+    createToggleCard(pages[2], "Cajas 2D", "Cajas alrededor del enemigo.", Config and Config.Version, function() return Config and Config.Boxes end, function(v) Config.Boxes = v end, Config ~= nil)
+    createToggleCard(pages[2], "Nombres y Roles", "Muestra Asesino/Sheriff.", Config and Config.Version, function() return Config and Config.Names end, function(v) Config.Names = v end, Config ~= nil)
     createSoonCard(pages[2], "Tracers")
     createSoonCard(pages[2], "Chams (Color)")
 
     -- 3. PÁGINA JUGADOR (MOVIMIENTO)
     pages[3] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[3])
-    createToggleCard(pages[3], "Velocidad (Speed)", "Aumenta tu velocidad de movimiento.", function() return MoveConfig and MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, MoveConfig ~= nil)
-    createToggleCard(pages[3], "Salto Alto (Jump)", "Aumenta la fuerza de salto.", function() return MoveConfig and MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, MoveConfig ~= nil)
+    createToggleCard(pages[3], "Velocidad (Speed)", "Aumenta la velocidad.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, MoveConfig ~= nil)
+    createToggleCard(pages[3], "Salto Alto (Jump)", "Aumenta el salto.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, MoveConfig ~= nil)
 
     -- 4. PÁGINA TELEPORT
     pages[4] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[4])
-    createToggleCard(pages[4], "TP a Jugador", "Teletransporta al jugador más cercano.", function() return TPConfig and TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, TPConfig ~= nil)
-    createToggleCard(pages[4], "TP a Moneda", "Busca monedas y teletransporta.", function() return TPConfig and TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, TPConfig ~= nil)
+    createToggleCard(pages[4], "TP a Jugador", "Va al jugador más cercano.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, TPConfig ~= nil)
+    createToggleCard(pages[4], "TP a Moneda", "Busca monedas y teletransporta.", TPConfig and TPConfig.Version, function() return TPConfig and TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, TPConfig ~= nil)
 
     -- 5. PÁGINA AJUSTES
     pages[5] = newPage()
