@@ -1,4 +1,7 @@
---// Invisibility.lua - Froggy Hub Module
+--// Froggy Hub - Invisibility (v1.3 - Dual Mode)
+--// Local: invisible solo para ti (100% seguro)
+--// Phantom: invisible para TODOS + puedes atacar (detectable)
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -8,97 +11,161 @@ if env.__FROGGY_INVIS_CLEANUP then pcall(env.__FROGGY_INVIS_CLEANUP) end
 
 local Config = {
     Enabled = false,
-    Transparency = 1,
-    Version = "v1.0"
+    Mode = "Local",          -- "Local" | "Phantom"
+    PhantomLocalAlpha = 0.5, -- qué tan visible te ves tú en modo Phantom (0.5 = fantasma)
+    Version = "v1.3"
 }
 env.FROGGY_INVIS_CONFIG = Config
 
-local connections = {}
-local originalStates = {}
+local connection
+local char = nil
+local boundParts = {} -- [part] = { origTransparency = ..., origLTM = ... }
 
-local function setPartInvisible(part, isInvisible)
-    if not part or not part.Parent then return end
-    if not originalStates[part] then
-        originalStates[part] = {
-            Transparency = part.Transparency,
-            LocalTransparencyModifier = part.LocalTransparencyModifier
-        }
-    end
-    if isInvisible then
-        part.Transparency = Config.Transparency
-        part.LocalTransparencyModifier = Config.Transparency
+local function snapshot(part)
+    if not part or not part:IsA("BasePart") then return end
+    if boundParts[part] then return end
+    boundParts[part] = {
+        origTransparency = part.Transparency,
+        origLTM = part.LocalTransparencyModifier,
+    }
+end
+
+local function applyToPart(part)
+    if not part or not part:IsA("BasePart") then return end
+    snapshot(part)
+    if Config.Mode == "Phantom" then
+        part.Transparency = 1                               -- invisible para el servidor y demás clientes
+        part.LocalTransparencyModifier = Config.PhantomLocalAlpha -- semi-visible para ti
     else
-        local orig = originalStates[part]
-        part.Transparency = orig.Transparency
-        part.LocalTransparencyModifier = orig.LocalTransparencyModifier
-        originalStates[part] = nil
+        part.LocalTransparencyModifier = 1                  -- solo te ocultas a ti mismo
     end
 end
 
-local function processCharacter(character)
-    if not character then return end
-    for _, obj in ipairs(character:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-            setPartInvisible(obj, Config.Enabled)
-        elseif obj:IsA("Accessory") or obj:IsA("Hat") then
-            local handle = obj:FindFirstChild("Handle")
-            if handle then setPartInvisible(handle, Config.Enabled) end
-        elseif obj:IsA("Decal") or obj:IsA("Texture") then
-            if Config.Enabled then
-                if not originalStates[obj] then originalStates[obj] = obj.Transparency end
+local function applyToCharacter(c)
+    if not c then return end
+    for _, obj in ipairs(c:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            applyToPart(obj)
+        elseif obj:IsA("Decal") then
+            if not boundParts[obj] then
+                boundParts[obj] = { origTransparency = obj.Transparency }
                 obj.Transparency = 1
-            else
-                if originalStates[obj] then obj.Transparency = originalStates[obj]; originalStates[obj] = nil end
-            end
-        elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-            if Config.Enabled then
-                if not originalStates[obj] then originalStates[obj] = obj.Enabled end
-                obj.Enabled = false
-            else
-                if originalStates[obj] ~= nil then obj.Enabled = originalStates[obj]; originalStates[obj] = nil end
             end
         end
     end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+        hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+    end
 end
 
-table.insert(connections, RunService.Heartbeat:Connect(function()
-    if Config.Enabled and LocalPlayer.Character then
-        processCharacter(LocalPlayer.Character)
+local function restoreAll()
+    for part, data in pairs(boundParts) do
+        if part and part.Parent then
+            pcall(function()
+                if part:IsA("BasePart") then
+                    part.Transparency = data.origTransparency or 0
+                    part.LocalTransparencyModifier = data.origLTM or 0
+                elseif part:IsA("Decal") then
+                    part.Transparency = data.origTransparency or 0
+                end
+            end)
+        end
     end
-end))
+    boundParts = {}
+end
 
-table.insert(connections, LocalPlayer.CharacterAdded:Connect(function(newCharacter)
-    task.wait(1)
-    if Config.Enabled then processCharacter(newCharacter) end
-end))
+local function restoreVisuals(c)
+    if not c then return end
+    local hum = c:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+        hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.DisplayWhenDamaged
+    end
+end
 
-function Config.Set(value)
-    Config.Enabled = value and true or false
-    if LocalPlayer.Character then
-        if Config.Enabled then
-            processCharacter(LocalPlayer.Character)
-        else
-            for part, data in pairs(originalStates) do
-                if part and part.Parent then
-                    if part:IsA("BasePart") or part:IsA("MeshPart") then
-                        part.Transparency = data.Transparency
-                        part.LocalTransparencyModifier = data.LocalTransparencyModifier
-                    elseif part:IsA("Decal") or part:IsA("Texture") then
-                        part.Transparency = data
-                    elseif part:IsA("ParticleEmitter") or part:IsA("Trail") or part:IsA("Beam") then
-                        part.Enabled = data
-                    end
+-- Refuerzo agresivo: se ejecuta cada frame de renderizado para ganar la carrera
+-- contra el servidor si intenta revertir la transparencia tras atacar/recibir daño.
+local function reinforce()
+    if not Config.Enabled then return end
+    local c = LocalPlayer.Character
+    if not c or c ~= char then return end
+
+    for _, obj in ipairs(c:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            if not boundParts[obj] then
+                applyToPart(obj) -- parte nueva (arma, accesorio, efecto)
+            elseif Config.Mode == "Phantom" then
+                if obj.Transparency ~= 1 then obj.Transparency = 1 end
+                if obj.LocalTransparencyModifier ~= Config.PhantomLocalAlpha then
+                    obj.LocalTransparencyModifier = Config.PhantomLocalAlpha
+                end
+            else
+                if obj.LocalTransparencyModifier ~= 1 then
+                    obj.LocalTransparencyModifier = 1
                 end
             end
-            originalStates = {}
         end
     end
 end
 
+local function startLoop()
+    if connection then return end
+    -- RenderStepped = máxima frecuencia (se ejecuta antes de cada frame de cámara)
+    connection = RunService.RenderStepped:Connect(reinforce)
+end
+
+local function stopLoop()
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+end
+
+function Config.Set(enabled, mode)
+    if mode then Config.Mode = mode end
+    Config.Enabled = enabled == true
+    char = LocalPlayer.Character
+    if Config.Enabled then
+        if char then applyToCharacter(char) end
+        startLoop()
+    else
+        stopLoop()
+        restoreAll()
+        restoreVisuals(char)
+    end
+end
+
+function Config.SetMode(mode)
+    if mode ~= "Local" and mode ~= "Phantom" then return end
+    Config.Mode = mode
+    if Config.Enabled then
+        stopLoop()
+        restoreAll()
+        char = LocalPlayer.Character
+        if char then applyToCharacter(char) end
+        startLoop()
+    end
+end
+
+function Config.Get() return Config.Enabled end
+
+-- Respawn: reaplica si está activo
+local charAddedConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+    if not Config.Enabled then return end
+    newChar:WaitForChild("Humanoid", 5)
+    task.wait(0.1)
+    char = newChar
+    applyToCharacter(newChar)
+end)
+
 env.__FROGGY_INVIS_CLEANUP = function()
-    Config.Enabled = false
-    for _, c in ipairs(connections) do c:Disconnect() end
-    Config.Set(false)
+    stopLoop()
+    pcall(function() charAddedConn:Disconnect() end)
+    pcall(function() Config.Set(false) end)
     env.FROGGY_INVIS_CONFIG = nil
     env.__FROGGY_INVIS_CLEANUP = nil
 end
+
+print("[Froggy Hub] Invisibility v1.3 (Dual Mode) cargado.")
