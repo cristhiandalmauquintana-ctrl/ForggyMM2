@@ -1,10 +1,10 @@
---// FroggyHub MM2 | Sapphire Edition - v1.0 (Version System)
+--// FroggyHub MM2 | Sapphire Edition - v1.1 (Reorganizado)
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
 
-local HUB_VERSION = "v1.0" -- 🔥 VERSIÓN DEL HUB
+local HUB_VERSION = "v1.1" -- 🔥 Versión del Hub
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -37,7 +37,7 @@ local function loadModule(names, configKey)
     local chunk = loadstring(src)
     if not chunk then return nil end
     local ok, runErr = pcall(chunk)
-    if not ok then warn("Error cargando modulo: " .. tostring(runErr)) return nil end
+    if not ok then warn("Error cargando modulo " .. configKey .. ": " .. tostring(runErr)) return nil end
     return env[configKey]
 end
 
@@ -87,11 +87,7 @@ local pill = make("Frame", { LayoutOrder = 2, Size = UDim2.fromOffset(46, 20), B
 corner(pill, 10); gradient(pill, C.Sapphire, C.Violet, 0)
 make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "MM2", TextColor3 = Color3.new(1, 1, 1), Font = Enum.Font.GothamBlack, TextSize = 12, ZIndex = 12 }, pill)
 
--- 🔥 BADGE DE VERSIÓN DEL HUB 🔥
-local versionBadge = make("TextLabel", {
-    LayoutOrder = 3, Size = UDim2.fromOffset(36, 16), BackgroundColor3 = C.Cyan, BackgroundTransparency = 0.8,
-    Text = HUB_VERSION, TextColor3 = C.Cyan, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 11,
-}, brand)
+local versionBadge = make("TextLabel", { LayoutOrder = 3, Size = UDim2.fromOffset(36, 16), BackgroundColor3 = C.Cyan, BackgroundTransparency = 0.8, Text = HUB_VERSION, TextColor3 = C.Cyan, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 11 }, brand)
 corner(versionBadge, 6)
 
 local function headerButton(text, xOff, color)
@@ -134,7 +130,6 @@ local function newPage()
 end
 
 local mainCards = {}
--- 🔥 AÑADIDO PARÁMETRO 'version' 🔥
 local function createToggleCard(parent, name, desc, version, get, set, available)
     local card = make("CanvasGroup", { BackgroundColor3 = C.Row, BackgroundTransparency = 0.15, GroupTransparency = 0, ZIndex = 10 }, parent)
     corner(card, 14)
@@ -143,7 +138,6 @@ local function createToggleCard(parent, name, desc, version, get, set, available
     
     make("TextLabel", { Size = UDim2.new(1, -28, 0, 20), Position = UDim2.fromOffset(14, 12), BackgroundTransparency = 1, Text = name, TextColor3 = C.Text, Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 12 }, btn)
     
-    -- Texto de descripción con la versión del módulo
     local descText = available and (desc .. (version and ("  |  " .. version) or "")) or "módulo no cargado"
     make("TextLabel", { Size = UDim2.new(1, -28, 0, 28), Position = UDim2.fromOffset(14, 34), BackgroundTransparency = 1, Text = descText, TextColor3 = available and C.Dim or Color3.fromRGB(220, 90, 110), Font = Enum.Font.Gotham, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextWrapped = true, ZIndex = 12 }, btn)
     
@@ -249,6 +243,7 @@ task.spawn(function()
     tw(mainScale, 0.7, { Scale = 1 }, Enum.EasingStyle.Back)
     tw(side, 0.5, { GroupTransparency = 0 })
 
+    -- Carga de módulos
     Config = loadModule(ESP_FILES, "MM2_ESP_CONFIG")
     GodConfig = loadModule(GODMODE_FILES, "MM2_GOD_CONFIG")
     MoveConfig = loadModule(MOVE_FILES, "MM2_MOVE_CONFIG")
@@ -257,27 +252,26 @@ task.spawn(function()
     for _, p in ipairs(content:GetChildren()) do p:Destroy() end
     table.clear(mainCards)
 
-    -- 1. PÁGINA PRINCIPAL
+    -- 1. PÁGINA PRINCIPAL (Kill All, Auto-Win)
     pages[1] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[1])
-    
-    -- 🔥 PASAMOS LA VERSIÓN DEL MÓDULO 🔥
-    createToggleCard(pages[1], "God Mode", "Inmortalidad total.", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
-    createToggleCard(pages[1], "ESP General", "Activa el ESP rápidamente.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
     createSoonCard(pages[1], "Kill All")
     createSoonCard(pages[1], "Auto-Win")
+    createSoonCard(pages[1], "Coin Farm")
+    createSoonCard(pages[1], "Auto-Shoot")
 
     -- 2. PÁGINA VISUAL (ESP)
     pages[2] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[2])
+    createToggleCard(pages[2], "ESP General", "Activa el ESP completo.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
     createToggleCard(pages[2], "Cajas 2D", "Cajas alrededor del enemigo.", Config and Config.Version, function() return Config and Config.Boxes end, function(v) Config.Boxes = v end, Config ~= nil)
     createToggleCard(pages[2], "Nombres y Roles", "Muestra Asesino/Sheriff.", Config and Config.Version, function() return Config and Config.Names end, function(v) Config.Names = v end, Config ~= nil)
     createSoonCard(pages[2], "Tracers")
-    createSoonCard(pages[2], "Chams (Color)")
 
-    -- 3. PÁGINA JUGADOR (MOVIMIENTO)
+    -- 3. PÁGINA JUGADOR (GodMode, Speed, Jump)
     pages[3] = newPage()
     make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[3])
+    createToggleCard(pages[3], "God Mode", "Inmortalidad total.", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
     createToggleCard(pages[3], "Velocidad (Speed)", "Aumenta la velocidad.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, MoveConfig ~= nil)
     createToggleCard(pages[3], "Salto Alto (Jump)", "Aumenta el salto.", MoveConfig and MoveConfig.Version, function() return MoveConfig and MoveConfig.JumpEnabled end, function(v) MoveConfig.JumpEnabled = v end, MoveConfig ~= nil)
 
