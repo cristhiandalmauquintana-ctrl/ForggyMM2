@@ -1,9 +1,9 @@
---// FroggyHub MM2 | Sapphire Edition - v1.8 (R15 Hitbox)
+--// FroggyHub MM2 | Sapphire Edition - v1.9 (Item ESP Update)
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
-local HUB_VERSION = "v1.8"
+local HUB_VERSION = "v1.9"
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -345,35 +345,21 @@ task.spawn(function()
     else
         createSoonCard(pages[2], "Mostrar FOV"); createSoonCard(pages[2], "Radio FOV")
     end
-    
-    -- 🔥 HITBOX EXPANDER CON SELECTOR DE PARTE 🔥
     createToggleCard(pages[2], "Hitbox Expander", "Agranda al enemigo.", HitboxConfig and HitboxConfig.Version, function() return HitboxConfig and HitboxConfig.Enabled end, function(v) HitboxConfig.Enabled = v end, HitboxConfig ~= nil)
     if HitboxConfig then
         createSliderCard(pages[2], "Tamaño Hitbox", "Evita crasheos.", nil, 2, 20, function() return HitboxConfig.Size end, function(v) HitboxConfig.Size = v end, true)
-        
-        -- Selector de parte (solo uno puede estar activo)
-        createToggleCard(pages[2], "Expandir HRP", "Expande el centro del cuerpo.", nil, function() return HitboxConfig.TargetPart == "HumanoidRootPart" end, function(v) 
-            if v then HitboxConfig.TargetPart = "HumanoidRootPart" 
-            else HitboxConfig.TargetPart = "" end 
-            -- Refrescar todos los switches para apagar el otro
-            for _, r in ipairs(refreshers) do pcall(r) end
-        end, true)
-        
-        createToggleCard(pages[2], "Expandir Cabeza", "Expande la cabeza del enemigo.", nil, function() return HitboxConfig.TargetPart == "Head" end, function(v) 
-            if v then HitboxConfig.TargetPart = "Head" 
-            else HitboxConfig.TargetPart = "" end 
-            for _, r in ipairs(refreshers) do pcall(r) end
-        end, true)
+        createToggleCard(pages[2], "Expandir HRP", "Centro del cuerpo.", nil, function() return HitboxConfig.TargetPart == "HumanoidRootPart" end, function(v) if v then HitboxConfig.TargetPart = "HumanoidRootPart" else HitboxConfig.TargetPart = "" end; for _, r in ipairs(refreshers) do pcall(r) end end, true)
+        createToggleCard(pages[2], "Expandir Cabeza", "Cabeza del enemigo.", nil, function() return HitboxConfig.TargetPart == "Head" end, function(v) if v then HitboxConfig.TargetPart = "Head" else HitboxConfig.TargetPart = "" end; for _, r in ipairs(refreshers) do pcall(r) end end, true)
     else
-        createSoonCard(pages[2], "Tamaño Hitbox")
-        createSoonCard(pages[2], "Expandir HRP")
-        createSoonCard(pages[2], "Expandir Cabeza")
+        createSoonCard(pages[2], "Tamaño Hitbox"); createSoonCard(pages[2], "Expandir HRP"); createSoonCard(pages[2], "Expandir Cabeza")
     end
 
     pages[3] = newPage(); make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[3])
     createToggleCard(pages[3], "ESP General", "Activa el ESP.", Config and Config.Version, function() return Config and Config.Enabled end, function(v) Config.Enabled = v end, Config ~= nil)
     createToggleCard(pages[3], "Cajas 2D", "Cajas en el enemigo.", Config and Config.Version, function() return Config and Config.Boxes end, function(v) Config.Boxes = v end, Config ~= nil)
     createToggleCard(pages[3], "Nombres y Roles", "Muestra Asesino/Sheriff.", Config and Config.Version, function() return Config and Config.Names end, function(v) Config.Names = v end, Config ~= nil)
+    createToggleCard(pages[3], "ESP Armas", "Muestra armas en el suelo.", Config and Config.Version, function() return Config and Config.ShowWeapons end, function(v) Config.ShowWeapons = v end, Config ~= nil)
+    createToggleCard(pages[3], "ESP Monedas", "Muestra monedas en el suelo.", Config and Config.Version, function() return Config and Config.ShowCoins end, function(v) Config.ShowCoins = v end, Config ~= nil)
 
     pages[4] = newPage(); make("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 96), CellPadding = UDim2.fromOffset(12, 12) }, pages[4])
     createToggleCard(pages[4], "God Mode", "Inmortalidad.", GodConfig and GodConfig.Version, function() return GodConfig and GodConfig.Enabled end, function(v) GodConfig.Enabled = v end, GodConfig ~= nil)
