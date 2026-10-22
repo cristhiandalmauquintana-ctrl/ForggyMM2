@@ -1,4 +1,5 @@
---// MM2 Hub - ESP (v1.0)
+--// MM2 Hub - ESP (v1.2 - Detección por Armas)
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -6,25 +7,38 @@ local LocalPlayer = Players.LocalPlayer
 local env = (getgenv and getgenv()) or _G
 if env.__MM2_ESP_CLEANUP then pcall(env.__MM2_ESP_CLEANUP) end
 
-local Config = { Enabled = false, Boxes = true, Names = true, Version = "v1.0" }
+local Config = { Enabled = false, Boxes = true, Names = true, Version = "v1.2" }
 env.MM2_ESP_CONFIG = Config
 local connections = {}
 
 local drawGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 drawGui.Name = "MM2_ESP"
 
-local RoleColors = { ["Murderer"] = Color3.fromRGB(255, 0, 0), ["Sheriff"] = Color3.fromRGB(0, 150, 255), ["Innocent"] = Color3.fromRGB(0, 255, 0), ["Hero"] = Color3.fromRGB(255, 255, 0), ["Default"] = Color3.fromRGB(255, 255, 255) }
+local RoleColors = { 
+    ["Murderer"] = Color3.fromRGB(255, 0, 0), 
+    ["Sheriff"] = Color3.fromRGB(0, 150, 255), 
+    ["Innocent"] = Color3.fromRGB(0, 255, 0), 
+    ["Default"] = Color3.fromRGB(255, 255, 255) 
+}
 local Objects = {}
 
+-- 🔥 DETECCIÓN POR ARMAS 🔥
 local function getPlayerRole(player)
-    local role = player:GetAttribute("Role")
-    if role then return role end
     local char = player.Character
-    if char then
-        local roleObj = char:FindFirstChild("Role")
-        if roleObj and roleObj:IsA("StringValue") then return roleObj.Value end
+    local backpack = player:FindFirstChild("Backpack")
+    
+    -- Revisar si tiene el Cuchillo (Murderer)
+    if (char and char:FindFirstChild("Knife")) or (backpack and backpack:FindFirstChild("Knife")) then
+        return "Murderer"
     end
-    return "Default"
+    -- Revisar si tiene la Pistola (Sheriff)
+    if (char and char:FindFirstChild("Gun")) or (backpack and backpack:FindFirstChild("Gun")) then
+        return "Sheriff"
+    end
+    -- Si es el jugador local y no tiene armas, es inocente
+    if player == LocalPlayer then return "Innocent" end
+    
+    return "Innocent"
 end
 
 local function createESP(player)
