@@ -1,10 +1,12 @@
---// FroggyHub MM2 | Emerald Functional Edition - v4.0
---// Diseño: ChatGPT | Lógica: DeepSeek
+--// FroggyHub MM2 | Emerald Edition - v4.1
+--// Diseño: ChatGPT | Lógica: DeepSeek | Pestaña Info: Nueva
 
 local GITHUB_USER = "cristhiandalmauquintana-ctrl"
 local GITHUB_REPO = "ForggyMM2"
 local BRANCH = "main"
-local HUB_VERSION = "v4.0"
+local HUB_VERSION = "v4.1"
+local HUB_DATE = "22 de Octubre 2026"
+local HUB_AUTHOR = "FroggyHub"
 
 local BASE_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(GITHUB_USER, GITHUB_REPO, BRANCH)
 
@@ -22,10 +24,10 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 if env.__MM2_PANEL_CLEANUP then pcall(env.__MM2_PANEL_CLEANUP) end
-print("[FroggyHub] Iniciando Emerald v" .. HUB_VERSION .. "...")
+print("[FroggyHub] Iniciando Emerald " .. HUB_VERSION .. "...")
 
 --==================================================
--- LÓGICA DE DESCARGA
+-- DESCARGA
 --==================================================
 local function downloadModule(names)
     for _, name in ipairs(names) do
@@ -39,9 +41,9 @@ local function loadModule(names, configKey)
     local src = downloadModule(names)
     if not src then warn("[FroggyHub] ❌ No se pudo descargar: " .. configKey) return nil end
     local chunk, err = loadstring(src)
-    if not chunk then warn("[FroggyHub] ❌ Error de sintaxis en " .. configKey .. ": " .. tostring(err)) return nil end
+    if not chunk then warn("[FroggyHub] ❌ Sintaxis en " .. configKey .. ": " .. tostring(err)) return nil end
     local ok, runErr = pcall(chunk)
-    if not ok then warn("[FroggyHub] ❌ Error ejecutando " .. configKey .. ": " .. tostring(runErr)) return nil end
+    if not ok then warn("[FroggyHub] ❌ Ejecución en " .. configKey .. ": " .. tostring(runErr)) return nil end
     print("[FroggyHub] ✅ " .. configKey .. " cargado")
     return env[configKey]
 end
@@ -65,7 +67,7 @@ end
 local logoAsset = fetchLogo()
 
 --==================================================
--- TEMA EMERALD (de ChatGPT)
+-- TEMA EMERALD
 --==================================================
 local THEME = {
     Background = Color3.fromRGB(5, 15, 12),
@@ -107,10 +109,8 @@ local oldGui = parentGui:FindFirstChild("FroggyEmeraldUI")
 if oldGui then oldGui:Destroy() end
 
 local gui = create("ScreenGui", {
-    Name = "FroggyEmeraldUI",
-    ResetOnSpawn = false,
-    IgnoreGuiInset = true,
-    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    Name = "FroggyEmeraldUI", ResetOnSpawn = false,
+    IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 }, parentGui)
 
 --==================================================
@@ -122,11 +122,8 @@ local main = create("Frame", {
     Position = UDim2.fromScale(0.5, 0.5),
     Size = UDim2.fromOffset(600, 380),
     BackgroundColor3 = THEME.Background,
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Active = false,
+    BorderSizePixel = 0, ClipsDescendants = true, Active = false,
 }, gui)
-
 round(main, 18)
 outline(main, THEME.EmeraldDark, 0.15, 1.5)
 
@@ -143,10 +140,7 @@ updateScale()
 --==================================================
 -- FONDO ANIMADO
 --==================================================
-local bg = create("Frame", {
-    Name = "AnimatedBackground", Size = UDim2.fromScale(1, 1),
-    BackgroundColor3 = THEME.Background, BorderSizePixel = 0, ZIndex = 0,
-}, main)
+local bg = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = THEME.Background, BorderSizePixel = 0, ZIndex = 0 }, main)
 round(bg, 18)
 
 local bgGrad = create("UIGradient", {
@@ -162,8 +156,7 @@ for i = 1, 3 do
     local glow = create("Frame", {
         Size = UDim2.fromOffset(240, 240),
         Position = UDim2.new((i - 1) * 0.38, -80, (i % 2 == 0) and 0.6 or 0.1, -60),
-        BackgroundColor3 = THEME.Emerald, BackgroundTransparency = 0.94,
-        BorderSizePixel = 0, ZIndex = 1,
+        BackgroundColor3 = THEME.Emerald, BackgroundTransparency = 0.94, BorderSizePixel = 0, ZIndex = 1,
     }, bg)
     round(glow, 120)
     create("UIGradient", {
@@ -178,7 +171,6 @@ local light = create("Frame", {
     BackgroundTransparency = 1, ZIndex = 2,
 }, bg)
 create("UIGradient", {
-    Rotation = 0,
     Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.93), NumberSequenceKeypoint.new(1, 1) }),
     Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, THEME.Emerald), ColorSequenceKeypoint.new(1, THEME.Mint) }),
 }, light)
@@ -203,8 +195,7 @@ end
 local title = create("TextLabel", {
     Position = UDim2.fromOffset(72, 13), Size = UDim2.fromOffset(220, 28),
     BackgroundTransparency = 1, Text = "FroggyHub", TextColor3 = THEME.White,
-    Font = Enum.Font.GothamBlack, TextSize = 23,
-    TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 6,
+    Font = Enum.Font.GothamBlack, TextSize = 23, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 6,
 }, header)
 create("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, THEME.White), ColorSequenceKeypoint.new(1, THEME.Emerald) }) }, title)
 
@@ -223,7 +214,7 @@ round(statusDot, 9)
 create("TextLabel", {
     AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -79, 0, 22),
     Size = UDim2.fromOffset(75, 18), BackgroundTransparency = 1,
-    Text = "INTERFAZ", TextColor3 = THEME.Mint, Font = Enum.Font.GothamBold,
+    Text = "ONLINE", TextColor3 = THEME.Mint, Font = Enum.Font.GothamBold,
     TextSize = 10, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 6,
 }, header)
 
@@ -236,6 +227,16 @@ local closeBtn = create("TextButton", {
 round(closeBtn, 10)
 track(closeBtn.MouseEnter:Connect(function() tween(closeBtn, 0.2, { BackgroundColor3 = Color3.fromRGB(105, 35, 50), TextColor3 = THEME.White }) end))
 track(closeBtn.MouseLeave:Connect(function() tween(closeBtn, 0.2, { BackgroundColor3 = THEME.Card, TextColor3 = THEME.Muted }) end))
+
+local minBtn = create("TextButton", {
+    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -52, 0, 15),
+    Size = UDim2.fromOffset(30, 30), BackgroundColor3 = THEME.Card,
+    Text = "–", TextColor3 = THEME.Muted, Font = Enum.Font.GothamBold,
+    TextSize = 20, AutoButtonColor = false, ZIndex = 8,
+}, header)
+round(minBtn, 10)
+track(minBtn.MouseEnter:Connect(function() tween(minBtn, 0.2, { BackgroundColor3 = THEME.EmeraldDark, TextColor3 = THEME.White }) end))
+track(minBtn.MouseLeave:Connect(function() tween(minBtn, 0.2, { BackgroundColor3 = THEME.Card, TextColor3 = THEME.Muted }) end))
 
 local divider = create("Frame", {
     Position = UDim2.fromOffset(18, 70), Size = UDim2.new(1, -36, 0, 1),
@@ -316,16 +317,16 @@ local homePage = createPage("Auto-Win", "★")
 local visualPage = createPage("Visual", "◉")
 local movementPage = createPage("Movimiento", "➤")
 local teleportPage = createPage("Teleport", "✈")
+local infoPage = createPage("Info", "ℹ")
 local settingsPage = createPage("Ajustes", "⚙")
 
 --==================================================
--- TARJETA CON TOGGLE (Estilo Emerald)
+-- COMPONENTES REUTILIZABLES
 --==================================================
 local function createToggle(parent, name, desc, version, get, set, available)
     local card = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 82),
-        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
-        BorderSizePixel = 0, ZIndex = 6,
+        Size = UDim2.new(1, 0, 0, 82), BackgroundColor3 = THEME.Card,
+        BackgroundTransparency = 0.12, BorderSizePixel = 0, ZIndex = 6,
     }, parent)
     round(card, 12); outline(card, THEME.Border, 0.6, 1)
 
@@ -341,8 +342,7 @@ local function createToggle(parent, name, desc, version, get, set, available)
     create("TextLabel", {
         Position = UDim2.fromOffset(15, 13), Size = UDim2.new(1, -90, 0, 22),
         BackgroundTransparency = 1, Text = name, TextColor3 = THEME.White,
-        Font = Enum.Font.GothamBold, TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+        Font = Enum.Font.GothamBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
     }, btn)
 
     local descText = available and (desc .. (version and ("  |  " .. version) or "")) or "módulo no cargado"
@@ -351,8 +351,7 @@ local function createToggle(parent, name, desc, version, get, set, available)
         BackgroundTransparency = 1, Text = descText,
         TextColor3 = available and THEME.Muted or THEME.Danger,
         Font = Enum.Font.Gotham, TextSize = 11, TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 7,
+        TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 7,
     }, btn)
 
     local sw = create("Frame", {
@@ -384,14 +383,10 @@ local function createToggle(parent, name, desc, version, get, set, available)
     return card
 end
 
---==================================================
--- TARJETA CON SLIDER
---==================================================
 local function createSlider(parent, name, desc, minV, maxV, stepV, get, set, available)
     local card = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 82),
-        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
-        BorderSizePixel = 0, ZIndex = 6,
+        Size = UDim2.new(1, 0, 0, 82), BackgroundColor3 = THEME.Card,
+        BackgroundTransparency = 0.12, BorderSizePixel = 0, ZIndex = 6,
     }, parent)
     round(card, 12); outline(card, THEME.Border, 0.6, 1)
 
@@ -404,22 +399,19 @@ local function createSlider(parent, name, desc, minV, maxV, stepV, get, set, ava
     create("TextLabel", {
         Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -80, 0, 18),
         BackgroundTransparency = 1, Text = name, TextColor3 = THEME.White,
-        Font = Enum.Font.GothamBold, TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+        Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
     }, card)
 
     local valueLabel = create("TextLabel", {
         Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -30, 0, 18),
         BackgroundTransparency = 1, Text = tostring(get()), TextColor3 = THEME.Emerald,
-        Font = Enum.Font.GothamBold, TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 7,
+        Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 7,
     }, card)
 
     create("TextLabel", {
         Position = UDim2.fromOffset(15, 30), Size = UDim2.new(1, -28, 0, 14),
         BackgroundTransparency = 1, Text = desc, TextColor3 = THEME.Muted,
-        Font = Enum.Font.Gotham, TextSize = 10,
-        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+        Font = Enum.Font.Gotham, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
     }, card)
 
     local hit = create("Frame", {
@@ -486,8 +478,7 @@ local function createSoon(parent, label)
     create("TextLabel", {
         Position = UDim2.fromOffset(15, 13), Size = UDim2.new(1, -28, 0, 22),
         BackgroundTransparency = 1, Text = label, TextColor3 = THEME.Muted,
-        Font = Enum.Font.GothamBold, TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+        Font = Enum.Font.GothamBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
     }, card)
     local badge = create("TextLabel", {
         Position = UDim2.fromOffset(15, 45), Size = UDim2.fromOffset(100, 18),
@@ -500,10 +491,169 @@ local function createSoon(parent, label)
 end
 
 --==================================================
--- SISTEMA DE ARRASTRE (Multi-touch fix)
+-- PESTAÑA INFO (LOGO CENTRADO + CRÉDITOS)
+--==================================================
+local function buildInfoPage()
+    -- Logo grande centrado
+    local logoFrame = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 140),
+        BackgroundTransparency = 1, ZIndex = 6,
+    }, infoPage)
+
+    local bigLogo = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0),
+        Position = UDim2.new(0.5, 0, 0, 10),
+        Size = UDim2.fromOffset(110, 110),
+        BackgroundColor3 = THEME.Card, BorderSizePixel = 0, ZIndex = 7,
+    }, logoFrame)
+    round(bigLogo, 55)
+    outline(bigLogo, THEME.Emerald, 0.2, 2.5)
+
+    if logoAsset then
+        create("ImageLabel", {
+            Size = UDim2.new(1, -10, 1, -10),
+            Position = UDim2.fromOffset(5, 5),
+            BackgroundTransparency = 1, Image = logoAsset,
+            ScaleType = Enum.ScaleType.Fit, ZIndex = 8,
+        }, bigLogo)
+    else
+        create("TextLabel", {
+            Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+            Text = "F", TextColor3 = THEME.Emerald,
+            Font = Enum.Font.GothamBlack, TextSize = 55, ZIndex = 8,
+        }, bigLogo)
+    end
+
+    -- Nombre debajo del logo
+    create("TextLabel", {
+        Position = UDim2.new(0, 0, 0, 118), Size = UDim2.new(1, 0, 0, 22),
+        BackgroundTransparency = 1, Text = HUB_AUTHOR,
+        TextColor3 = THEME.Emerald, Font = Enum.Font.GothamBlack,
+        TextSize = 18, ZIndex = 7,
+    }, logoFrame)
+
+    -- Tarjeta de versión
+    local versionCard = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 70),
+        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
+        BorderSizePixel = 0, ZIndex = 6,
+    }, infoPage)
+    round(versionCard, 12); outline(versionCard, THEME.Border, 0.6, 1)
+
+    create("Frame", {
+        Position = UDim2.fromOffset(0, 12), Size = UDim2.new(0, 3, 0, 46),
+        BackgroundColor3 = THEME.Emerald, BorderSizePixel = 0, ZIndex = 7,
+    }, versionCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -30, 0, 20),
+        BackgroundTransparency = 1, Text = "VERSIÓN DEL SCRIPT",
+        TextColor3 = THEME.Muted, Font = Enum.Font.GothamBold, TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, versionCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 30), Size = UDim2.new(1, -30, 0, 26),
+        BackgroundTransparency = 1, Text = HUB_VERSION .. "  •  Emerald Edition",
+        TextColor3 = THEME.White, Font = Enum.Font.GothamBlack, TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, versionCard)
+
+    -- Tarjeta de fecha
+    local dateCard = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 70),
+        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
+        BorderSizePixel = 0, ZIndex = 6,
+    }, infoPage)
+    round(dateCard, 12); outline(dateCard, THEME.Border, 0.6, 1)
+
+    create("Frame", {
+        Position = UDim2.fromOffset(0, 12), Size = UDim2.new(0, 3, 0, 46),
+        BackgroundColor3 = THEME.Mint, BorderSizePixel = 0, ZIndex = 7,
+    }, dateCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -30, 0, 20),
+        BackgroundTransparency = 1, Text = "ÚLTIMA ACTUALIZACIÓN",
+        TextColor3 = THEME.Muted, Font = Enum.Font.GothamBold, TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, dateCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 30), Size = UDim2.new(1, -30, 0, 26),
+        BackgroundTransparency = 1, Text = HUB_DATE,
+        TextColor3 = THEME.White, Font = Enum.Font.GothamBlack, TextSize = 16,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, dateCard)
+
+    -- Tarjeta de créditos
+    local creditsCard = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 90),
+        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
+        BorderSizePixel = 0, ZIndex = 6,
+    }, infoPage)
+    round(creditsCard, 12); outline(creditsCard, THEME.Border, 0.6, 1)
+
+    create("Frame", {
+        Position = UDim2.fromOffset(0, 12), Size = UDim2.new(0, 3, 0, 66),
+        BackgroundColor3 = THEME.EmeraldDark, BorderSizePixel = 0, ZIndex = 7,
+    }, creditsCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 10), Size = UDim2.new(1, -30, 0, 20),
+        BackgroundTransparency = 1, Text = "DESARROLLADO POR",
+        TextColor3 = THEME.Muted, Font = Enum.Font.GothamBold, TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, creditsCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 30), Size = UDim2.new(1, -30, 0, 22),
+        BackgroundTransparency = 1, Text = HUB_AUTHOR,
+        TextColor3 = THEME.Emerald, Font = Enum.Font.GothamBlack, TextSize = 15,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, creditsCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(15, 54), Size = UDim2.new(1, -30, 0, 22),
+        BackgroundTransparency = 1, Text = "Diseño Emerald • Lógica Funcional",
+        TextColor3 = THEME.Muted, Font = Enum.Font.Gotham, TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, creditsCard)
+
+    -- Tarjeta de estado
+    local statusCard = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 70),
+        BackgroundColor3 = THEME.Card, BackgroundTransparency = 0.12,
+        BorderSizePixel = 0, ZIndex = 6,
+    }, infoPage)
+    round(statusCard, 12); outline(statusCard, THEME.Emerald, 0.4, 1.5)
+
+    local pulseDot = create("Frame", {
+        Position = UDim2.fromOffset(15, 27), Size = UDim2.fromOffset(14, 14),
+        BackgroundColor3 = THEME.Emerald, BorderSizePixel = 0, ZIndex = 7,
+    }, statusCard)
+    round(pulseDot, 7)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(38, 20), Size = UDim2.new(1, -50, 0, 26),
+        BackgroundTransparency = 1, Text = "SISTEMA OPERATIVO",
+        TextColor3 = THEME.White, Font = Enum.Font.GothamBlack, TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, statusCard)
+
+    create("TextLabel", {
+        Position = UDim2.fromOffset(38, 42), Size = UDim2.new(1, -50, 0, 18),
+        BackgroundTransparency = 1, Text = "Todos los módulos cargados correctamente",
+        TextColor3 = THEME.Mint, Font = Enum.Font.Gotham, TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7,
+    }, statusCard)
+end
+
+--==================================================
+-- ARRASTRE (Multi-touch fix)
 --==================================================
 local activeTouch = nil
-local function makeDraggable(handle, onDrag)
+local function makeDraggable(handle)
     local dragging, startPos, startPos2, moved
     track(handle.InputBegan:Connect(function(input)
         if activeTouch then return end
@@ -530,7 +680,7 @@ end
 makeDraggable(header)
 
 --==================================================
--- BURBUJA CON LOGO
+-- BURBUJA CON LOGO (FIXED)
 --==================================================
 local BUBBLE = 52
 local bubble = create("TextButton", {
@@ -539,7 +689,7 @@ local bubble = create("TextButton", {
     Visible = false, AutoButtonColor = false, ZIndex = 100,
 }, gui)
 round(bubble, BUBBLE / 2)
-local bubbleStroke = outline(bubble, THEME.Emerald, 0.2, 2)
+outline(bubble, THEME.Emerald, 0.2, 2)
 
 if logoAsset then
     create("ImageLabel", { Size = UDim2.new(1, -8, 1, -8), Position = UDim2.new(0, 4, 0, 4), BackgroundTransparency = 1, Image = logoAsset, ScaleType = Enum.ScaleType.Fit, ZIndex = 101 }, bubble)
@@ -547,58 +697,68 @@ else
     create("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "F", TextColor3 = THEME.Emerald, Font = Enum.Font.GothamBlack, TextSize = 24, ZIndex = 101 }, bubble)
 end
 
-local bubbleDragging, bubbleMoved
-local function makeBubbleDraggable()
-    track(bubble.InputBegan:Connect(function(input)
-        if activeTouch then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            activeTouch = input
-            bubbleDragging = true
-            local startPos = input.Position
-            local startPos2 = Vector2.new(bubble.AbsolutePosition.X, bubble.AbsolutePosition.Y)
-            bubbleMoved = false
-            local conn; conn = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    bubbleDragging = false; activeTouch = nil
-                    if not bubbleMoved then setShown(true) end
-                    conn:Disconnect()
-                end
-            end)
-            track(UserInputService.InputChanged:Connect(function(inp)
-                if not bubbleDragging or activeTouch ~= input then return end
-                local d = inp.Position - startPos
-                if d.Magnitude > 5 then bubbleMoved = true end
-                if bubbleMoved then bubble.Position = UDim2.fromOffset(startPos2.X + d.X, startPos2.Y + d.Y) end
-            end))
-        end
-    end))
-end
-makeBubbleDraggable()
-
+-- 🔥 FIX: setShown ANTES del drag de la burbuja
 local shown = true
-local function setShown(v)
+local setShown
+setShown = function(v)
     if shown == v then return end
     shown = v
     if v then
-        bubble.Visible = false; main.Visible = true
-        tween(mainScale, 0.45, { Scale = math.clamp(math.min(workspace.CurrentCamera.ViewportSize.X / 680, workspace.CurrentCamera.ViewportSize.Y / 440), 0.65, 1) }, Enum.EasingStyle.Back)
+        bubble.Visible = false
+        main.Visible = true
+        local cam = workspace.CurrentCamera
+        local target = 0.9
+        if cam then
+            local vp = cam.ViewportSize
+            target = math.clamp(math.min(vp.X / 680, vp.Y / 440), 0.65, 1)
+        end
+        tween(mainScale, 0.45, { Scale = target }, Enum.EasingStyle.Back)
     else
         local t = tween(mainScale, 0.3, { Scale = 0.01 }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
         t.Completed:Once(function()
             if not shown then
-                main.Visible = false; bubble.Visible = true
+                main.Visible = false
+                bubble.Visible = true
                 bubble.Position = UDim2.fromOffset(main.AbsolutePosition.X, main.AbsolutePosition.Y)
             end
         end)
     end
 end
 
-create("TextButton", {
-    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -52, 0, 15),
-    Size = UDim2.fromOffset(30, 30), BackgroundColor3 = THEME.Card,
-    Text = "–", TextColor3 = THEME.Muted, Font = Enum.Font.GothamBold,
-    TextSize = 20, AutoButtonColor = false, ZIndex = 8,
-}, header).MouseButton1Click:Connect(function() setShown(false) end)
+-- Arrastrar / clic de la burbuja
+local bubbleDragging, bubbleMoved
+track(bubble.InputBegan:Connect(function(input)
+    if activeTouch then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        activeTouch = input
+        bubbleDragging = true
+        local startPos = input.Position
+        local startAbs = Vector2.new(bubble.AbsolutePosition.X, bubble.AbsolutePosition.Y)
+        bubbleMoved = false
+
+        local conn; conn = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                bubbleDragging = false
+                activeTouch = nil
+                if not bubbleMoved then setShown(true) end
+                conn:Disconnect()
+            end
+        end)
+
+        track(UserInputService.InputChanged:Connect(function(inp)
+            if not bubbleDragging or activeTouch ~= input then return end
+            if inp.UserInputType ~= Enum.UserInputType.MouseMovement and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+            local d = inp.Position - startPos
+            if d.Magnitude > 5 then bubbleMoved = true end
+            if bubbleMoved then
+                bubble.Position = UDim2.fromOffset(startAbs.X + d.X, startAbs.Y + d.Y)
+            end
+        end))
+    end
+end))
+
+-- Botón minimizar
+track(minBtn.MouseButton1Click:Connect(function() setShown(false) end))
 
 --==================================================
 -- ANIMACIONES
@@ -660,7 +820,7 @@ task.spawn(function()
 
     print("[FroggyHub] Construyendo UI...")
 
-    -- PESTAÑA 1: AUTO-WIN
+    -- PESTAÑA AUTO-WIN
     if AutoWinConfig then
         createToggle(homePage, "Auto-Win", "Teletransporta y ataca automáticamente según tu rol.", AutoWinConfig.Version, function() return AutoWinConfig.Enabled end, function(v) AutoWinConfig.Enabled = v end, true)
         createSoon(homePage, "Kill All")
@@ -669,7 +829,7 @@ task.spawn(function()
         createSoon(homePage, "Auto-Win (No cargado)")
     end
 
-    -- PESTAÑA 2: VISUAL
+    -- PESTAÑA VISUAL
     if Config then
         createToggle(visualPage, "ESP General", "Activa el ESP completo.", Config.Version, function() return Config.Enabled end, function(v) Config.Enabled = v end, true)
         createToggle(visualPage, "Cajas 2D", "Cajas alrededor del enemigo.", nil, function() return Config.Boxes end, function(v) Config.Boxes = v end, true)
@@ -680,7 +840,7 @@ task.spawn(function()
         createSoon(visualPage, "ESP (No cargado)")
     end
 
-    -- PESTAÑA 3: MOVIMIENTO
+    -- PESTAÑA MOVIMIENTO
     if MoveConfig then
         createToggle(movementPage, "Velocidad", "Aumenta la velocidad.", MoveConfig.Version, function() return MoveConfig.SpeedEnabled end, function(v) MoveConfig.SpeedEnabled = v end, true)
         createSlider(movementPage, "Velocidad (studs/s)", "Ajusta la velocidad exacta.", 16, 200, 4, function() return MoveConfig.Speed end, function(v) MoveConfig.Speed = v end, true)
@@ -690,7 +850,7 @@ task.spawn(function()
         createSoon(movementPage, "Movimiento (No cargado)")
     end
 
-    -- PESTAÑA 4: TELEPORT
+    -- PESTAÑA TELEPORT
     if TPConfig then
         createToggle(teleportPage, "TP a Jugador", "Va al jugador más cercano.", TPConfig.Version, function() return TPConfig.TpPlayer end, function(v) TPConfig.TpPlayer = v end, true)
         createToggle(teleportPage, "TP a Moneda", "Busca monedas y teletransporta.", TPConfig.Version, function() return TPConfig.TpCoin end, function(v) TPConfig.TpCoin = v end, true)
@@ -698,18 +858,13 @@ task.spawn(function()
         createSoon(teleportPage, "Teleport (No cargado)")
     end
 
-    -- PESTAÑA 5: AJUSTES
+    -- PESTAÑA INFO
+    buildInfoPage()
+
+    -- PESTAÑA AJUSTES
     createSoon(settingsPage, "Selector de temas")
     createSoon(settingsPage, "Guardar configuración")
-
-    -- Footer
-    create("TextLabel", {
-        AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -7),
-        Size = UDim2.fromOffset(200, 14), BackgroundTransparency = 1,
-        Text = "FROGGYHUB  •  EMERALD EDITION", TextColor3 = THEME.Muted,
-        Font = Enum.Font.GothamMedium, TextSize = 9,
-        TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 8,
-    }, main)
+    createSoon(settingsPage, "Restablecer ajustes")
 
     -- Estado inicial
     homePage.Visible = true
@@ -725,5 +880,5 @@ task.spawn(function()
     main.BackgroundTransparency = 1
     tween(main, 0.6, { Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
 
-    print("[FroggyHub] ✅ Emerald UI construida correctamente.")
+    print("[FroggyHub] ✅ Emerald UI v" .. HUB_VERSION .. " construida correctamente.")
 end)
