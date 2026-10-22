@@ -1,4 +1,4 @@
---// MM2 Hub - Silent Aim (v1.1 - Con FOV)
+--// MM2 Hub - Silent Aim (v1.2 - Detección por Armas + FOV)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,51 +9,30 @@ local Mouse = LocalPlayer:GetMouse()
 local env = (getgenv and getgenv()) or _G
 if env.__MM2_SA_CLEANUP then pcall(env.__MM2_SA_CLEANUP) end
 
-local Config = { 
-    Enabled = false, 
-    FOV = 250, 
-    ShowFOV = true, 
-    Version = "v1.1" 
-}
+local Config = { Enabled = false, FOV = 250, ShowFOV = true, Version = "v1.2" }
 env.MM2_SA_CONFIG = Config
 local connections = {}
 
--- 🔥 CREACIÓN DEL FOV VISUAL 🔥
-local fovGui = Instance.new("ScreenGui")
-fovGui.Name = "MM2_SilentAim_FOV"
+-- FOV Visual
+local fovGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+fovGui.Name = "MM2_FOV"
 fovGui.ResetOnSpawn = false
-fovGui.IgnoreGuiInset = true
-fovGui.DisplayOrder = 50
-fovGui.Parent = game:GetService("CoreGui")
-
-local fovCircle = Instance.new("Frame")
-fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-fovCircle.Position = UDim2.fromScale(0.5, 0.5)
-fovCircle.BackgroundTransparency = 1
-fovCircle.BorderSizePixel = 0
-fovCircle.Visible = false
-fovCircle.Parent = fovGui
-
+local fovCircle = Instance.new("Frame", fovGui)
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5); fovCircle.Position = UDim2.fromScale(0.5, 0.5)
+fovCircle.BackgroundTransparency = 1; fovCircle.BorderSizePixel = 0; fovCircle.Visible = false
 Instance.new("UICorner", fovCircle).CornerRadius = UDim.new(1, 0)
-
 local fovStroke = Instance.new("UIStroke", fovCircle)
-fovStroke.Color = Color3.fromRGB(92, 200, 255) -- Color Cyan del tema Zafiro
-fovStroke.Thickness = 2
-fovStroke.Transparency = 0.3
+fovStroke.Color = Color3.fromRGB(92, 200, 255); fovStroke.Thickness = 2; fovStroke.Transparency = 0.3
 
--- Lógica de Roles
+-- Detección por armas
 local function getRole(player)
-    local role = player:GetAttribute("Role")
-    if role then return role end
     local char = player.Character
-    if char then
-        local r = char:FindFirstChild("Role")
-        if r and r:IsA("StringValue") then return r.Value end
-    end
-    return "Default"
+    local backpack = player:FindFirstChild("Backpack")
+    if (char and char:FindFirstChild("Knife")) or (backpack and backpack:FindFirstChild("Knife")) then return "Murderer" end
+    if (char and char:FindFirstChild("Gun")) or (backpack and backpack:FindFirstChild("Gun")) then return "Sheriff" end
+    return "Innocent"
 end
 
--- Buscar el objetivo
 local function getTarget()
     local myRole = getRole(LocalPlayer)
     local closest = nil
@@ -74,10 +53,7 @@ local function getTarget()
                 local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
                 if onScreen and pos.Z > 0 then
                     local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                    if dist < shortestDist then
-                        closest = root
-                        shortestDist = dist
-                    end
+                    if dist < shortestDist then closest = root; shortestDist = dist end
                 end
             end
         end
@@ -85,27 +61,21 @@ local function getTarget()
     return closest
 end
 
--- Hook al Ratón
 local mt = getrawmetatable(game)
 local oldIndex = mt.__index
 setreadonly(mt, false)
-
 mt.__index = newcclosure(function(self, key)
     if Config.Enabled and (self == Mouse or self == Camera) then
         local target = getTarget()
         if target then
-            if key == "Hit" then
-                return CFrame.new(target.Position)
-            elseif key == "Target" then
-                return target
-            end
+            if key == "Hit" then return CFrame.new(target.Position) end
+            if key == "Target" then return target end
         end
     end
     return oldIndex(self, key)
 end)
 setreadonly(mt, true)
 
--- 🔥 BUCLE PARA ACTUALIZAR EL FOV VISUAL 🔥
 table.insert(connections, RunService.RenderStepped:Connect(function()
     if Config.Enabled and Config.ShowFOV then
         fovCircle.Visible = true
