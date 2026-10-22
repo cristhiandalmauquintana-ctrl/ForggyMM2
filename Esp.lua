@@ -1,5 +1,4 @@
---// MM2 Hub - ESP de Roles y Armas
-
+--// MM2 Hub - ESP (v1.0)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -7,20 +6,14 @@ local LocalPlayer = Players.LocalPlayer
 local env = (getgenv and getgenv()) or _G
 if env.__MM2_ESP_CLEANUP then pcall(env.__MM2_ESP_CLEANUP) end
 
-local Config = { Enabled = false, Boxes = true, Names = true }
+local Config = { Enabled = false, Boxes = true, Names = true, Version = "v1.0" }
 env.MM2_ESP_CONFIG = Config
 local connections = {}
 
 local drawGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 drawGui.Name = "MM2_ESP"
 
-local RoleColors = { 
-    ["Murderer"] = Color3.fromRGB(255, 0, 0), 
-    ["Sheriff"] = Color3.fromRGB(0, 150, 255), 
-    ["Innocent"] = Color3.fromRGB(0, 255, 0), 
-    ["Hero"] = Color3.fromRGB(255, 255, 0), 
-    ["Default"] = Color3.fromRGB(255, 255, 255) 
-}
+local RoleColors = { ["Murderer"] = Color3.fromRGB(255, 0, 0), ["Sheriff"] = Color3.fromRGB(0, 150, 255), ["Innocent"] = Color3.fromRGB(0, 255, 0), ["Hero"] = Color3.fromRGB(255, 255, 0), ["Default"] = Color3.fromRGB(255, 255, 255) }
 local Objects = {}
 
 local function getPlayerRole(player)
@@ -50,7 +43,7 @@ local camera = workspace.CurrentCamera
 local timer = 0
 table.insert(connections, RunService.RenderStepped:Connect(function(dt)
     timer = timer + dt
-    if timer < 0.05 then return end -- 20 FPS para el ESP
+    if timer < 0.05 then return end
     timer = 0
     
     for player, data in pairs(Objects) do
