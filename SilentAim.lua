@@ -1,4 +1,4 @@
---// MM2 Hub - Silent Aim (v1.2 - Detección por Armas + FOV)
+--// MM2 Hub - Silent Aim (v1.3)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,11 +9,10 @@ local Mouse = LocalPlayer:GetMouse()
 local env = (getgenv and getgenv()) or _G
 if env.__MM2_SA_CLEANUP then pcall(env.__MM2_SA_CLEANUP) end
 
-local Config = { Enabled = false, FOV = 250, ShowFOV = true, Version = "v1.2" }
+local Config = { Enabled = false, FOV = 250, ShowFOV = true, Version = "v1.3" }
 env.MM2_SA_CONFIG = Config
 local connections = {}
 
--- FOV Visual
 local fovGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 fovGui.Name = "MM2_FOV"
 fovGui.ResetOnSpawn = false
@@ -24,7 +23,6 @@ Instance.new("UICorner", fovCircle).CornerRadius = UDim.new(1, 0)
 local fovStroke = Instance.new("UIStroke", fovCircle)
 fovStroke.Color = Color3.fromRGB(92, 200, 255); fovStroke.Thickness = 2; fovStroke.Transparency = 0.3
 
--- Detección por armas
 local function getRole(player)
     local char = player.Character
     local backpack = player:FindFirstChild("Backpack")
