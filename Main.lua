@@ -1,6 +1,6 @@
 --[[
 	╔══════════════════════════════════════════════════════════╗
-	║  FROGGY HUB v1.2 — Panel de Control (TSB Edition)        ║
+	║  FROGGY HUB v1.3 — Panel de Control (TSB Edition)        ║
 	║  Tema: Charca de Rana (Frog Pond)                        ║
 	╚══════════════════════════════════════════════════════════╝
 ]]
@@ -39,16 +39,41 @@ end
 local function loadModule(filename, configKey)
     local url = BASE_URL .. filename .. "?v=" .. os.time()
     local ok, src = pcall(function() return game:HttpGet(url, true) end)
-    if not ok or type(src) ~= "string" or src:sub(1, 3) == "404" then return nil end
+    
+    if not ok then 
+        warn("[Froggy Hub] ❌ Error de red al buscar: " .. filename)
+        return nil 
+    end
+    if type(src) ~= "string" or src:sub(1, 3) == "404" or #src < 10 then 
+        warn("[Froggy Hub] ❌ 404: El archivo no existe en GitHub -> " .. filename)
+        return nil 
+    end
+    
     local chunk, err = loadstring(src)
-    if type(chunk) ~= "function" then warn("Error de sintaxis en "..filename..": "..tostring(err)) return nil end
+    if type(chunk) ~= "function" then 
+        warn("[Froggy Hub] ❌ Error de sintaxis en " .. filename .. ": " .. tostring(err)) 
+        return nil 
+    end
+    
     local runOk, runErr = pcall(chunk)
-    if not runOk then warn("Error ejecutando "..filename..": "..tostring(runErr)) return nil end
-    return (getgenv and getgenv() or _G)[configKey]
+    if not runOk then 
+        warn("[Froggy Hub] ❌ Error ejecutando " .. filename .. ": " .. tostring(runErr)) 
+        return nil 
+    end
+    
+    local cfg = (getgenv and getgenv() or _G)[configKey]
+    if not cfg then
+        warn("[Froggy Hub] ⚠️ El archivo " .. filename .. " cargó, pero NO creó la variable: " .. configKey)
+        return nil
+    end
+    
+    print("[Froggy Hub] ✅ " .. filename .. " cargado correctamente.")
+    return cfg
 end
 
 local LogoId = fetchLogo()
-local InvisConfig = loadModule("Invisibility.lua", "FROGGY_INVIS_CONFIG")
+-- ¡Nombres corregidos para que coincidan con tu GitHub!
+local InvisConfig = loadModule("Invisibilidad.lua", "FROGGY_INVIS_CONFIG")
 local MoveConfig = loadModule("Movement.lua", "FROGGY_MOVE_CONFIG")
 
 ------------------------------------------------------------
@@ -56,7 +81,7 @@ local MoveConfig = loadModule("Movement.lua", "FROGGY_MOVE_CONFIG")
 ------------------------------------------------------------
 local CONFIG = {
 	Name = "Froggy Hub",
-	Version = "v1.2-TSB",
+	Version = "v1.3-TSB",
 	LogoId = LogoId,
 	BaseSize = Vector2.new(560, 360),
 	HeaderHeight = 48,
@@ -364,17 +389,40 @@ end)
 
 local visualsPage = createPage("Visuals")
 createSection(visualsPage, "Invisibilidad")
-createToggle(visualsPage, "Invisibilidad Local", "Desaparece de tu pantalla", false, function(enabled)
-    if InvisConfig then
-        InvisConfig.Set(enabled)
-        Notify("Invisibilidad", enabled and "Activada" or "Desactivada")
-    else
-        Notify("Error", "Módulo de invisibilidad no cargado.")
+
+local invisEnabled = false
+local phantomMode = false
+
+local function applyInvis()
+    if not InvisConfig then return end
+    if InvisConfig.SetMode then
+        InvisConfig.SetMode(phantomMode and "Phantom" or "Local")
     end
+    InvisConfig.Set(invisEnabled)
+end
+
+createToggle(visualsPage, "Invisibilidad", "Activa la invisibilidad", false, function(enabled)
+    if not InvisConfig then
+        Notify("Error", "Módulo de invisibilidad no cargado.")
+        return
+    end
+    invisEnabled = enabled
+    applyInvis()
+    Notify("Invisibilidad", enabled and ("ON · " .. (phantomMode and "Phantom" or "Local")) or "OFF")
+end)
+
+createToggle(visualsPage, "Modo Phantom", "Invisible para TODOS + atacas (DETECTABLE)", false, function(enabled)
+    if not InvisConfig then
+        Notify("Error", "Módulo de invisibilidad no cargado.")
+        return
+    end
+    phantomMode = enabled
+    if invisEnabled then applyInvis() end
+    Notify("Modo", enabled and "Phantom (riesgoso)" or "Local (seguro)")
 end)
 
 ------------------------------------------------------------
--- MOVEMENT PAGE (conectado a MoveConfig)
+-- MOVEMENT PAGE
 ------------------------------------------------------------
 local movementPage = createPage("Movement")
 createSection(movementPage, "Velocidad · TSB-friendly")
@@ -512,6 +560,7 @@ closeBtn.Activated:Connect(function()
 	if closing then return end
 	closing = true; fxEnabled = false
 	if flyState.enabled then stopFly() end
+    if InvisConfig and invisEnabled then InvisConfig.Set(false) end
 	local t = tween(uiScale, 0.3, { Scale = 0 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 	t.Completed:Wait(); screenGui:Destroy()
 end)
@@ -525,4 +574,4 @@ screenGui.Destroying:Connect(function() fxEnabled = false; for _, connection in 
 ------------------------------------------------------------
 selectPage("Combat")
 tween(uiScale, 0.5, { Scale = computeScale() }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-task.delay(0.6, function() Notify("Froggy Hub " .. CONFIG.Version, "Panel cargado. Speed 36 · Jump 60 · Stuns respetados.") end)
+task.delay(0.6, function() Notify("Froggy Hub " .. CONFIG.Version, "Panel cargado. Revisa la consola (F9) si algo falla.") end)
